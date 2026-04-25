@@ -90,4 +90,3 @@ class CommitGuardEnvironment:
             # state() must not leak labels; returning empty is fine
             return CommitGuardState(episode_id="", current_sample_id="", step_count=0, history=[])
         return self._state
-

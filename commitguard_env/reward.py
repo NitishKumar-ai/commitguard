@@ -11,4 +11,3 @@ def compute_reward(*, action: CommitGuardAction) -> float:
     """
     _ = action
     return 0.0
-
