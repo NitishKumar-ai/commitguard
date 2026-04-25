@@ -31,10 +31,9 @@ def run_random_episodes(n=100):
                     exploit_sketch="Random exploit attempt"
                 )
             
-            obs = env.step(action)
-            total_reward += obs.reward
+            obs, reward, done = env.step(action)
+            total_reward += reward
             steps += 1
-            done = obs.done
             
             if steps > 10: # Safety break
                 break
