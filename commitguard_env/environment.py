@@ -45,9 +45,15 @@ class CommitGuardEnvironment:
         if not self._samples:
             raise RuntimeError("no_samples_loaded")
 
-    def reset(self) -> CommitGuardObservation:
+    def reset(self, sample_id: str | None = None) -> CommitGuardObservation:
         self.load()
-        sample = self._rng.choice(self._samples)
+        if sample_id:
+            sample = next((s for s in self._samples if s.sample_id == sample_id), None)
+            if not sample:
+                raise ValueError(f"sample_id {sample_id} not found")
+        else:
+            sample = self._rng.choice(self._samples)
+        
         episode_id = str(uuid.uuid4())
         self._state = CommitGuardState(
             episode_id=episode_id,

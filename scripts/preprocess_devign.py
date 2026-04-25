@@ -34,33 +34,66 @@ def main() -> None:
     rng = random.Random(args.seed)
 
     if args.inp is None:
-        # Fallback generator for hackathon progress when full Devign isn't wired yet.
-        # Produces a small, label-bearing dataset (labels are server-only; env never emits them).
         samples: list[dict] = []
         templates = [
-            (
-                True,
-                "CWE-89",
-                "--- a/db.py\n+++ b/db.py\n@@\n- q = f\"SELECT * FROM users WHERE id={user_id}\" \n+ q = \"SELECT * FROM users WHERE id=\" + user_id\n",
-                "db.py",
-            ),
-            (
-                False,
-                None,
-                "--- a/math.py\n+++ b/math.py\n@@\n- return a+b\n+ return a + b\n",
-                "math.py",
-            ),
+            # SQL Injection - Vulnerable (f-string/concat) -> Secure (parameterized)
+            {
+                "is_vulnerable": True,
+                "cwe": "CWE-89",
+                "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n+ cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n",
+                "target_file": "db.py"
+            },
+            {
+                "is_vulnerable": False,
+                "cwe": "CWE-89",
+                "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = \" + user_id)\n+ cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n",
+                "target_file": "db.py"
+            },
+            # XSS - Vulnerable (innerHTML) -> Secure (textContent)
+            {
+                "is_vulnerable": True,
+                "cwe": "CWE-79",
+                "diff": "--- a/app.js\n+++ b/app.js\n@@\n- el.textContent = user_input;\n+ el.innerHTML = user_input;\n",
+                "target_file": "app.js"
+            },
+            {
+                "is_vulnerable": False,
+                "cwe": "CWE-79",
+                "diff": "--- a/app.js\n+++ b/app.js\n@@\n- el.innerHTML = \"Welcome \" + name;\n+ el.textContent = \"Welcome \" + name;\n",
+                "target_file": "app.js"
+            },
+            # Auth Bypass - Vulnerable (weak check) -> Secure (strong check)
+            {
+                "is_vulnerable": True,
+                "cwe": "CWE-287",
+                "diff": "--- a/auth.py\n+++ b/auth.py\n@@\n- if user.is_authenticated and user.has_perm('admin'):\n+ if user.username == 'admin':\n",
+                "target_file": "auth.py"
+            },
+            {
+                "is_vulnerable": False,
+                "cwe": "CWE-287",
+                "diff": "--- a/auth.py\n+++ b/auth.py\n@@\n- if request.user:\n+ if request.user and request.user.is_authenticated:\n",
+                "target_file": "auth.py"
+            },
+            # Path Traversal
+            {
+                "is_vulnerable": True,
+                "cwe": "CWE-22",
+                "diff": "--- a/files.py\n+++ b/files.py\n@@\n- path = os.path.join(SAFE_DIR, os.path.basename(filename))\n+ path = os.path.join(SAFE_DIR, filename)\n",
+                "target_file": "files.py"
+            }
         ]
-        for i in range(min(args.limit, 200)):
-            is_v, cwe, diff, target = rng.choice(templates)
+        
+        for i in range(args.limit):
+            tpl = rng.choice(templates)
             samples.append(
                 {
                     "sample_id": f"synthetic-{i:05d}",
-                    "diff": diff,
-                    "available_files": [target],
-                    "is_vulnerable": is_v,
-                    "cwe": cwe,
-                    "target_file": target,
+                    "diff": tpl["diff"],
+                    "available_files": [tpl["target_file"]],
+                    "is_vulnerable": tpl["is_vulnerable"],
+                    "cwe": tpl["cwe"],
+                    "target_file": tpl["target_file"],
                 }
             )
         _write_jsonl(args.out, samples)

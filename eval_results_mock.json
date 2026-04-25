@@ -26,7 +26,7 @@
           "observation": {
             "episode_id": "c98a9f07-18fe-40a3-8c65-161a46fdabbd",
             "step_idx": 1,
-            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- q = f\"SELECT * FROM users WHERE id={user_id}\" \n+ q = \"SELECT * FROM users WHERE id=\" + user_id\n",
+            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n+ cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n",
             "available_files": [
               "db.py"
             ],
@@ -37,13 +37,13 @@
         },
         {
           "step": 1,
-          "model_output": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-20</vuln_type><exploit_sketch>substring match bypass</exploit_sketch></action>",
-          "parsed_action": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-20</vuln_type><exploit_sketch>substring match bypass</exploit_sketch></action>",
+          "model_output": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>SQL injection in user_id</exploit_sketch></action>",
+          "parsed_action": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>SQL injection in user_id</exploit_sketch></action>",
           "reward": 0.95,
           "observation": {
             "episode_id": "c98a9f07-18fe-40a3-8c65-161a46fdabbd",
             "step_idx": 2,
-            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- q = f\"SELECT * FROM users WHERE id={user_id}\" \n+ q = \"SELECT * FROM users WHERE id=\" + user_id\n",
+            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n+ cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n",
             "available_files": [
               "db.py"
             ],
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "sample_id": "synthetic-00100",
+      "sample_id": "synthetic-00101",
       "gt_vulnerable": true,
       "gt_cwe": "CWE-89",
       "final_verdict": true,
@@ -70,7 +70,7 @@
           "observation": {
             "episode_id": "299ca2fd-e3e6-4bac-b8a2-d7404a52e07d",
             "step_idx": 1,
-            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- q = f\"SELECT * FROM users WHERE id={user_id}\" \n+ q = \"SELECT * FROM users WHERE id=\" + user_id\n",
+            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n+ cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n",
             "available_files": [
               "db.py"
             ],
@@ -81,13 +81,13 @@
         },
         {
           "step": 1,
-          "model_output": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-20</vuln_type><exploit_sketch>substring match bypass</exploit_sketch></action>",
-          "parsed_action": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-20</vuln_type><exploit_sketch>substring match bypass</exploit_sketch></action>",
+          "model_output": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>SQL injection in user_id</exploit_sketch></action>",
+          "parsed_action": "<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>SQL injection in user_id</exploit_sketch></action>",
           "reward": 0.95,
           "observation": {
             "episode_id": "299ca2fd-e3e6-4bac-b8a2-d7404a52e07d",
             "step_idx": 2,
-            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- q = f\"SELECT * FROM users WHERE id={user_id}\" \n+ q = \"SELECT * FROM users WHERE id=\" + user_id\n",
+            "diff": "--- a/db.py\n+++ b/db.py\n@@\n- cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n+ cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n",
             "available_files": [
               "db.py"
             ],

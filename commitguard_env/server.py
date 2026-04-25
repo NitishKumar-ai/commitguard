@@ -43,14 +43,20 @@ def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
+class ResetRequest(BaseModel):
+    sample_id: str | None = None
+
 @app.post("/reset")
-def reset() -> dict[str, Any]:
-    obs = env.reset()
-    return {
-        "observation": asdict(obs),
-        "done": False,
-        "reward": 0.0,
-    }
+def reset(req: ResetRequest = ResetRequest()) -> dict[str, Any]:
+    try:
+        obs = env.reset(sample_id=req.sample_id)
+        return {
+            "observation": asdict(obs),
+            "done": False,
+            "reward": 0.0,
+        }
+    except ValueError as e:
+        return {"error": str(e)}
 
 
 @app.post("/step")

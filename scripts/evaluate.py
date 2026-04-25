@@ -9,48 +9,19 @@ from typing import Any
 
 import requests
 import torch
+import traceback
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 SYSTEM_PROMPT = """You are a security analyst reviewing code commits for vulnerabilities.
-
-You see a code diff and must determine if it introduces an exploitable vulnerability.
-
-Respond with one of three action types, wrapped in XML tags:
-
-<action><action_type>request_context</action_type><file_path>filename.c</file_path></action>
-
-OR
-
-<action><action_type>analyze</action_type><reasoning>your reasoning here</reasoning></action>
-
-OR
-
-<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>brief description of how to exploit this</exploit_sketch></action>
-
+...
 You have at most 5 steps per commit. Be efficient.
 """
 
 def parse_xml_action(text: str) -> str | None:
-    """Extracts the <action>...</action> block from model output."""
-    match = re.search(r"(<action>.*?</action>)", text, re.DOTALL)
-    if match:
-        return match.group(1)
-    return None
-
-def get_model_response(model, tokenizer, prompt: str, device: str) -> str:
-    inputs = tokenizer(prompt, return_tensors="pt").to(device)
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=256,
-            do_sample=False,
-            temperature=None,
-            top_p=None,
-            pad_token_id=tokenizer.eos_token_id
-        )
+...
     return tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 
 def main() -> None:
@@ -61,6 +32,8 @@ def main() -> None:
     parser.add_argument("--env_url", type=str, default="http://127.0.0.1:8000", help="Environment server URL")
     parser.add_argument("--output", type=str, default="eval_results.json", help="Output results file")
     parser.add_argument("--limit", type=int, default=10, help="Limit number of samples to evaluate")
+    parser.add_argument("--timeout", type=int, default=10, help="Timeout for server requests")
+    parser.add_argument("--max_failures", type=int, default=5, help="Max allowed consecutive failures")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -91,45 +64,29 @@ def main() -> None:
 
     results = []
     cwe_stats = {}
+    failure_count = 0
 
     for sample in tqdm(test_samples, desc="Evaluating"):
         sample_id = sample["sample_id"]
         gt_vulnerable = sample["is_vulnerable"]
         gt_cwe = sample.get("cwe")
         
-        # Reset environment
+        # Reset environment with deterministic sample_id
         try:
-            # We don't have a way to force the server to pick a specific sample by ID in /reset
-            # so for evaluation we might need a special endpoint or just hope we can match it.
-            # However, CommitGuardEnvironment uses a random choice.
-            # To fix this, we'll assume the evaluation script is the ONLY client and 
-            # we'll use a hack or just accept random for now.
-            # ACTUALLY, a better way for evaluation is to mock the env or 
-            # modify the env to accept a sample_id.
-            # Let's check if environment.py has a way.
-            # It doesn't.
-            # But the user asked for a loop that calls /step.
+            resp_raw = requests.post(
+                f"{args.env_url}/reset", 
+                json={"sample_id": sample_id}, 
+                timeout=args.timeout
+            )
+            resp_raw.raise_for_status()
+            resp = resp_raw.json()
             
-            # Alternative: Since we have the sample locally, we can "pretend" we are in sync
-            # if we can tell the server WHICH sample to use.
-            # For now, let's assume we use the server's reset and we try to match the sample_id.
-            
-            resp = requests.post(f"{args.env_url}/reset").json()
+            if "error" in resp:
+                print(f"Server error for sample {sample_id}: {resp['error']}")
+                continue
+
             obs = resp["observation"]
             episode_id = obs["episode_id"]
-            
-            # Match ground truth from local test_samples based on the obs's content if possible,
-            # or just use the obs's sample if the server returned it (it doesn't).
-            # WAIT: the environment.py reset() returns obs which has `diff`. 
-            # We can find the sample in our local list by diff.
-            current_sample = next((s for s in test_samples if s["diff"] == obs["diff"]), None)
-            if not current_sample:
-                # If not found in test set, maybe it's from filtered set
-                # This happens if server is running on devign_filtered.jsonl
-                continue
-                
-            gt_vulnerable = current_sample["is_vulnerable"]
-            gt_cwe = current_sample.get("cwe")
             
             history = []
             done = False
@@ -137,16 +94,30 @@ def main() -> None:
             
             prompt = f"{SYSTEM_PROMPT}\n\nDiff:\n{obs['diff']}\n\nAvailable files: {obs['available_files']}\n"
             
+            final_vuln_type = None
             for step_idx in range(5):
                 model_output = get_model_response(model, tokenizer, prompt, device)
                 action_xml = parse_xml_action(model_output)
                 
-                if not action_xml:
-                    # Malformed or model didn't use tags, send empty action to get penalty
-                    step_resp = requests.post(f"{args.env_url}/step", json={"action": model_output}).json()
-                else:
-                    step_resp = requests.post(f"{args.env_url}/step", json={"action": action_xml}).json()
-                
+                try:
+                    if not action_xml:
+                        step_resp_raw = requests.post(
+                            f"{args.env_url}/step", 
+                            json={"action": model_output}, 
+                            timeout=args.timeout
+                        )
+                    else:
+                        step_resp_raw = requests.post(
+                            f"{args.env_url}/step", 
+                            json={"action": action_xml}, 
+                            timeout=args.timeout
+                        )
+                    step_resp_raw.raise_for_status()
+                    step_resp = step_resp_raw.json()
+                except (requests.Timeout, requests.RequestException):
+                    print(f"\nStep request failed for {sample_id} at step {step_idx}")
+                    raise
+
                 obs = step_resp["observation"]
                 reward = step_resp["reward"]
                 done = step_resp["done"]
@@ -161,6 +132,11 @@ def main() -> None:
                 })
                 
                 if done:
+                    # Capture vuln_type from the final verdict if available
+                    if action_xml and "<action_type>verdict</action_type>" in action_xml:
+                        match = re.search(r"<vuln_type>(.*?)</vuln_type>", action_xml)
+                        if match:
+                            final_vuln_type = match.group(1).strip()
                     break
                 
                 # Update prompt for next step
@@ -174,13 +150,19 @@ def main() -> None:
                 if is_vuln_match:
                     final_verdict = is_vuln_match.group(1).lower() in ["true", "1", "yes"]
 
+            # Strict scoring: verdict must match AND CWE must match if vulnerable
             is_correct = (final_verdict == gt_vulnerable) if final_verdict is not None else False
-            
+            if is_correct and gt_vulnerable:
+                # Check CWE match
+                if not (gt_cwe and final_vuln_type and final_vuln_type.upper() == gt_cwe.upper()):
+                    is_correct = False
+
             results.append({
-                "sample_id": current_sample["sample_id"],
+                "sample_id": sample_id,
                 "gt_vulnerable": gt_vulnerable,
                 "gt_cwe": gt_cwe,
                 "final_verdict": final_verdict,
+                "final_vuln_type": final_vuln_type,
                 "is_correct": is_correct,
                 "total_reward": total_reward,
                 "history": history
@@ -193,9 +175,16 @@ def main() -> None:
             cwe_stats[cwe]["total"] += 1
             if is_correct:
                 cwe_stats[cwe]["correct"] += 1
+            
+            failure_count = 0 # reset on success
 
-        except Exception as e:
-            print(f"Error evaluating sample: {e}")
+        except Exception:
+            failure_count += 1
+            print(f"\nError evaluating sample {sample_id}:")
+            traceback.print_exc()
+            if failure_count >= args.max_failures:
+                print(f"Reached max consecutive failures ({args.max_failures}). Aborting.")
+                break
             continue
 
     # Final report
