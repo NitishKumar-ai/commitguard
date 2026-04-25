@@ -20,8 +20,8 @@ You can start immediately — your work doesn't depend on Niti's env code being 
 
 **Goal:** A single JSONL file with clean, balanced, filtered samples ready for the env.
 
-- [ ] Verify Devign dataset is on disk locally. If not, download from HuggingFace: `DetectBERT/devign` or the original Devign release
-- [ ] Write `preprocess_devign.py`:
+- [x] Verify Devign dataset is on disk locally. If not, download from HuggingFace: `DetectBERT/devign` or the original Devign release
+- [x] Write `preprocess_devign.py`:
   - Load all samples
   - Filter: drop samples where `len(code.split('\n')) > 80` (keeps context windows manageable for Qwen-0.5B / Llama-3.2-3B)
   - Filter: drop samples without a clear CWE label
@@ -39,17 +39,17 @@ You can start immediately — your work doesn't depend on Niti's env code being 
     }
     ```
   - Note: Devign doesn't have real "before/after" diffs — synthesize by treating each function as `code_after` and using a slightly mutated version (or just an empty string + `code_after`) as `code_before`. Don't overthink this; the diff representation is what matters.
-- [ ] Save to `data/devign_filtered.jsonl`
-- [ ] Aim for ~5000 samples post-filter. If you have fewer, that's fine — quality over quantity.
-- [ ] Smoke test: `wc -l data/devign_filtered.jsonl` and spot-check 5 random samples manually for sanity
+- [x] Save to `data/devign_filtered.jsonl`
+- [x] Aim for ~5000 samples post-filter. If you have fewer, that's fine — quality over quantity.
+- [x] Smoke test: `wc -l data/devign_filtered.jsonl` and spot-check 5 random samples manually for sanity
 
 ### Task 1.2 — CWE keyword dictionary (30 min)
 
 **Goal:** Map each top-10 CWE to a list of exploit-pattern keywords for reward computation.
 
-- [ ] Identify the top 10 CWEs by frequency in your filtered dataset
-- [ ] For each CWE, list 5-10 keywords/phrases that would appear in a plausible exploit description
-- [ ] Save to `cwe_keywords.json`:
+- [x] Identify the top 10 CWEs by frequency in your filtered dataset
+- [x] For each CWE, list 5-10 keywords/phrases that would appear in a plausible exploit description
+- [x] Save to `cwe_keywords.json`:
   ```json
   {
     "CWE-89": ["sql injection", "drop table", "union select", "or 1=1", "concat", "unsanitized input"],
@@ -58,13 +58,13 @@ You can start immediately — your work doesn't depend on Niti's env code being 
     ...
   }
   ```
-- [ ] Source from MITRE CWE pages (mitre.org/data/definitions/89.html etc.) — copy the exploit examples, extract phrases
+- [x] Source from MITRE CWE pages (mitre.org/data/definitions/89.html etc.) — copy the exploit examples, extract phrases
 
 ### Task 1.3 — Reward function (1 hour)
 
 **Goal:** Pure function that takes an action + ground truth and returns a scalar reward. Tested.
 
-- [ ] Write `reward.py`:
+- [x] Write `reward.py`:
   ```python
   def compute_reward(action: dict, ground_truth: dict, cwe_keywords: dict, step_count: int) -> float:
       reward = 0.0
@@ -100,19 +100,19 @@ You can start immediately — your work doesn't depend on Niti's env code being 
 
       return reward
   ```
-- [ ] Write 5 hand-crafted unit tests in `test_reward.py`:
+- [x] Write 5 hand-crafted unit tests in `test_reward.py`:
   - Correct vulnerable verdict → reward = 1.0
   - Correct vulnerable + correct CWE + good sketch → reward = 2.0
   - False positive (flagged safe as vulnerable) → reward = -1.0
   - False negative (missed real vuln) → reward = -0.5
   - Context request → reward = -0.05
-- [ ] All tests pass
+- [x] All tests pass
 
 ### Task 1.4 — No-leak unit test (30 min)
 
 **Goal:** A test that fails loudly if Niti accidentally leaks ground truth into the observation.
 
-- [ ] Write `test_no_leak.py`:
+- [x] Write `test_no_leak.py`:
   ```python
   def test_observation_does_not_leak_ground_truth():
       env = CommitGuardEnvironment()

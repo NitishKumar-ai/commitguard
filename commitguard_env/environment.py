@@ -25,8 +25,8 @@ class CommitGuardEnvironment:
             obj = json.loads(line)
             self._samples.append(
                 DevignSample(
-                    sample_id=str(obj["sample_id"]),
-                    diff=str(obj["diff"]),
+                    sample_id=str(obj["commit_id"]),
+                    diff=f"--- code_before\n+++ code_after\n{obj['code_before']}\n{obj['code_after']}",
                     available_files=list(obj.get("available_files") or []),
                 )
             )

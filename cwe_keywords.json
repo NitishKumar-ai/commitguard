@@ -5,5 +5,8 @@
   "CWE-476": ["null pointer", "nullptr", "dereference", "null check", "segmentation fault", "null access"],
   "CWE-189": ["integer overflow", "signedness", "division by zero", "arithmetic overflow", "wrap around", "overflow bit"],
   "CWE-79": ["xss", "cross site scripting", "script tag", "innerhtml", "alert(", "javascript:", "onerror", "content injection"],
-  "CWE-89": ["sql injection", "sqli", "drop table", "union select", "query concatenation", "prepared statement", "bypass login"]
+  "CWE-89": ["sql injection", "sqli", "drop table", "union select", "query concatenation", "prepared statement", "bypass login"],
+  "CWE-78": ["command injection", "os.system", "subprocess", "shell=true", "exec(", "popen", "system(", "shell command"],
+  "CWE-22": ["path traversal", "directory traversal", "../", "..\\", "file inclusion", "arbitrary file", "escape root", "chroot"],
+  "CWE-352": ["csrf", "cross site request forgery", "forged request", "missing token", "state changing request", "anti-csrf", "same origin"]
 }

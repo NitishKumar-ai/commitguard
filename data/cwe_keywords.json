@@ -1,13 +1,12 @@
 {
-  "CWE-79": ["xss", "script", "innerhtml", "sanitize"],
-  "CWE-89": ["sql", "select", "where", "concat", "injection"],
-  "CWE-22": ["path", "traversal", "../", "join"],
-  "CWE-78": ["shell", "exec", "system(", "command"],
-  "CWE-20": ["validate", "input", "sanitize", "bounds"],
-  "CWE-125": ["out-of-bounds", "read", "index", "buffer"],
-  "CWE-787": ["buffer", "overflow", "memcpy", "strcpy"],
-  "CWE-190": ["integer", "overflow", "wrap", "size_t"],
-  "CWE-476": ["null", "nullptr", "dereference", "check"],
-  "CWE-400": ["dos", "resource", "loop", "allocation"]
+  "CWE-119": ["buffer overflow", "out of bounds", "overflow", "bounds check", "memcpy", "strcpy", "strcat", "index out of range"],
+  "CWE-399": ["memory leak", "resource exhaustion", "double free", "use after free", "free()", "dangling pointer", "allocation failure"],
+  "CWE-20": ["input validation", "improper input", "validation bypass", "sanitization", "untrusted input", "malformed data"],
+  "CWE-476": ["null pointer", "nullptr", "dereference", "null check", "segmentation fault", "null access"],
+  "CWE-189": ["integer overflow", "signedness", "division by zero", "arithmetic overflow", "wrap around", "overflow bit"],
+  "CWE-79": ["xss", "cross site scripting", "script tag", "innerhtml", "alert(", "javascript:", "onerror", "content injection"],
+  "CWE-89": ["sql injection", "sqli", "drop table", "union select", "query concatenation", "prepared statement", "bypass login"],
+  "CWE-78": ["command injection", "os.system", "subprocess", "shell=true", "exec(", "popen", "system(", "shell command"],
+  "CWE-22": ["path traversal", "directory traversal", "../", "..\\", "file inclusion", "arbitrary file", "escape root", "chroot"],
+  "CWE-352": ["csrf", "cross site request forgery", "forged request", "missing token", "state changing request", "anti-csrf", "same origin"]
 }
-
