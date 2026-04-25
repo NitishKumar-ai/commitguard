@@ -1,0 +1,13 @@
+{
+  "CWE-79": ["xss", "script", "innerhtml", "sanitize"],
+  "CWE-89": ["sql", "select", "where", "concat", "injection"],
+  "CWE-22": ["path", "traversal", "../", "join"],
+  "CWE-78": ["shell", "exec", "system(", "command"],
+  "CWE-20": ["validate", "input", "sanitize", "bounds"],
+  "CWE-125": ["out-of-bounds", "read", "index", "buffer"],
+  "CWE-787": ["buffer", "overflow", "memcpy", "strcpy"],
+  "CWE-190": ["integer", "overflow", "wrap", "size_t"],
+  "CWE-476": ["null", "nullptr", "dereference", "check"],
+  "CWE-400": ["dos", "resource", "loop", "allocation"]
+}
+
