@@ -126,7 +126,7 @@ You can start immediately — your work doesn't depend on Niti's env code being 
       for key in forbidden_keys:
           assert key not in str(asdict(obs)).lower()
   ```
-- [ ] Run against Niti's env once it's ready. Test must pass.
+- [x] Run against Niti's env once it's ready. Test must pass.
 
 **Hard checkpoint at midnight:** JSONL exists, reward function passes 5 unit tests, no-leak test passes against Niti's env.
 
