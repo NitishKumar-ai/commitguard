@@ -8,6 +8,20 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.27",
   "pydantic>=2.6",
+  "openenv>=0.1.13",
+]
+
+[project.optional-dependencies]
+train = [
+  "requests",
+  "torch",
+  "transformers",
+  "trl",
+  "accelerate",
+  "peft",
+  "datasets",
+  "wandb",
+  "matplotlib",
 ]
 
 [project.scripts]

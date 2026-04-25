@@ -33,6 +33,15 @@ Health check:
 powershell -NoProfile -Command "Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json -Compress"
 ```
 
+## Generate required plot artifacts (P0)
+
+Baseline curve (commits a PNG under `plots/`):
+
+```bash
+python -m pip install matplotlib
+python scripts/run_and_plot_baseline.py --episodes 200
+```
+
 ## Quickstart (Docker)
 
 ```bash
@@ -65,4 +74,8 @@ Model actions are **XML-tagged free text** (robust to small-model variance). Spe
 - **Training notebook / job**: `<TODO>`
 - **W&B run**: `<TODO>`
 - **Demo video**: `<TODO>`
+
+## Google Cloud (GCE) runbook
+
+See `scripts/gce_vm_runbook.md`.
 
