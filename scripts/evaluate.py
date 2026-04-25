@@ -4,24 +4,54 @@ import argparse
 import json
 import os
 import re
+import traceback
 from dataclasses import asdict
 from typing import Any
 
 import requests
 import torch
-import traceback
 from peft import PeftModel
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 SYSTEM_PROMPT = """You are a security analyst reviewing code commits for vulnerabilities.
-...
+
+You see a code diff and must determine if it introduces an exploitable vulnerability.
+
+Respond with one of three action types, wrapped in XML tags:
+
+<action><action_type>request_context</action_type><file_path>filename.c</file_path></action>
+
+OR
+
+<action><action_type>analyze</action_type><reasoning>your reasoning here</reasoning></action>
+
+OR
+
+<action><action_type>verdict</action_type><is_vulnerable>true</is_vulnerable><vuln_type>CWE-89</vuln_type><exploit_sketch>brief description of how to exploit this</exploit_sketch></action>
+
 You have at most 5 steps per commit. Be efficient.
 """
 
 def parse_xml_action(text: str) -> str | None:
-...
+    """Extracts the <action>...</action> block from model output."""
+    match = re.search(r"(<action>.*?</action>)", text, re.DOTALL)
+    if match:
+        return match.group(1)
+    return None
+
+def get_model_response(model, tokenizer, prompt: str, device: str) -> str:
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=256,
+            do_sample=False,
+            temperature=None,
+            top_p=None,
+            pad_token_id=tokenizer.eos_token_id
+        )
     return tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 
 def main() -> None:
@@ -32,7 +62,7 @@ def main() -> None:
     parser.add_argument("--env_url", type=str, default="http://127.0.0.1:8000", help="Environment server URL")
     parser.add_argument("--output", type=str, default="eval_results.json", help="Output results file")
     parser.add_argument("--limit", type=int, default=10, help="Limit number of samples to evaluate")
-    parser.add_argument("--timeout", type=int, default=10, help="Timeout for server requests")
+    parser.add_argument("--timeout", type=int, default=10, help="Timeout for server requests (seconds)")
     parser.add_argument("--max_failures", type=int, default=5, help="Max allowed consecutive failures")
     args = parser.parse_args()
 
@@ -55,9 +85,14 @@ def main() -> None:
 
     # Load ground truth for metric breakdown
     test_samples = []
+    if not os.path.exists(args.data_path):
+        print(f"Error: Data path {args.data_path} not found.")
+        return
+
     with open(args.data_path, "r", encoding="utf-8") as f:
         for line in f:
-            test_samples.append(json.loads(line))
+            if line.strip():
+                test_samples.append(json.loads(line))
     
     if args.limit:
         test_samples = test_samples[:args.limit]
@@ -82,19 +117,18 @@ def main() -> None:
             resp = resp_raw.json()
             
             if "error" in resp:
-                print(f"Server error for sample {sample_id}: {resp['error']}")
+                print(f"\nServer error for sample {sample_id}: {resp['error']}")
                 continue
 
             obs = resp["observation"]
-            episode_id = obs["episode_id"]
             
             history = []
             done = False
             total_reward = 0.0
+            final_vuln_type = None
             
             prompt = f"{SYSTEM_PROMPT}\n\nDiff:\n{obs['diff']}\n\nAvailable files: {obs['available_files']}\n"
             
-            final_vuln_type = None
             for step_idx in range(5):
                 model_output = get_model_response(model, tokenizer, prompt, device)
                 action_xml = parse_xml_action(model_output)
@@ -144,11 +178,12 @@ def main() -> None:
 
             # Extract final verdict
             final_verdict = None
-            last_action = history[-1]["parsed_action"]
-            if last_action and "<action_type>verdict</action_type>" in last_action:
-                is_vuln_match = re.search(r"<is_vulnerable>(.*?)</is_vulnerable>", last_action)
-                if is_vuln_match:
-                    final_verdict = is_vuln_match.group(1).lower() in ["true", "1", "yes"]
+            if history:
+                last_action = history[-1]["parsed_action"]
+                if last_action and "<action_type>verdict</action_type>" in last_action:
+                    is_vuln_match = re.search(r"<is_vulnerable>(.*?)</is_vulnerable>", last_action)
+                    if is_vuln_match:
+                        final_verdict = is_vuln_match.group(1).lower() in ["true", "1", "yes"]
 
             # Strict scoring: verdict must match AND CWE must match if vulnerable
             is_correct = (final_verdict == gt_vulnerable) if final_verdict is not None else False
