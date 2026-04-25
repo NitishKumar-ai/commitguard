@@ -11,11 +11,13 @@ from .reward import compute_reward
 
 
 class CommitGuardEnvironment:
-    def __init__(self, *, data_path: Path) -> None:
+    def __init__(self, *, data_path: Path, cwe_keywords_path: Path = Path("cwe_keywords.json")) -> None:
         self._data_path = data_path
+        self._cwe_keywords_path = cwe_keywords_path
         self._samples: list[DevignSample] = []
         self._state: CommitGuardState | None = None
         self._rng = random.Random(0)
+        self._cwe_keywords: dict = {}
 
     def load(self) -> None:
         if self._samples:
@@ -28,8 +30,14 @@ class CommitGuardEnvironment:
                     sample_id=str(obj["commit_id"]),
                     diff=f"--- code_before\n+++ code_after\n{obj['code_before']}\n{obj['code_after']}",
                     available_files=list(obj.get("available_files") or []),
+                    is_vulnerable=bool(obj["is_vulnerable"]),
+                    cwe_type=str(obj["cwe_type"]),
                 )
             )
+        
+        if self._cwe_keywords_path.exists():
+            with open(self._cwe_keywords_path) as f:
+                self._cwe_keywords = json.load(f)
         if not self._samples:
             raise RuntimeError("no_samples_loaded")
 
@@ -41,6 +49,10 @@ class CommitGuardEnvironment:
             episode_id=episode_id,
             current_sample_id=sample.sample_id,
             step_count=0,
+            ground_truth={
+                "is_vulnerable": sample.is_vulnerable,
+                "cwe_type": sample.cwe_type
+            },
             history=[],
         )
         return CommitGuardObservation(
@@ -59,7 +71,12 @@ class CommitGuardEnvironment:
         assert self._state is not None
         next_step = self._state.step_count + 1
 
-        reward = compute_reward(action=action)
+        reward = compute_reward(
+            action=action, 
+            ground_truth=self._state.ground_truth,
+            cwe_keywords=self._cwe_keywords,
+            step_count=next_step
+        )
         done = bool(action.action_type == "verdict" or next_step >= 5)
 
         self._state = replace(

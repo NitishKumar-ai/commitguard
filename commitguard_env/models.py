@@ -34,6 +34,7 @@ class CommitGuardState:
     episode_id: str
     current_sample_id: str
     step_count: int
+    ground_truth: dict = field(default_factory=dict)
     history: list[dict] = field(default_factory=list)
 
 
@@ -42,4 +43,6 @@ class DevignSample:
     sample_id: str
     diff: str
     available_files: list[str]
+    is_vulnerable: bool
+    cwe_type: str
 
