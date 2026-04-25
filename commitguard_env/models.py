@@ -20,12 +20,22 @@ class CommitGuardAction:
 
 
 @dataclass(frozen=True, slots=True)
+class ContextSnippet:
+    file_path: str
+    start_line: int
+    end_line: int
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
 class CommitGuardObservation:
+    # Cheating-prevention critical: this shape must never include ground truth.
+    episode_id: str
+    step_idx: int
     diff: str
     available_files: list[str]
-    step_count: int
-    reward: float
-    done: bool
+    context_snippets: list[ContextSnippet] = field(default_factory=list)
+    budget_remaining: int = 0
     error: Optional[str] = None
 
 
@@ -34,7 +44,7 @@ class CommitGuardState:
     episode_id: str
     current_sample_id: str
     step_count: int
-    ground_truth: dict = field(default_factory=dict)
+    context_requests: int = 0
     history: list[dict] = field(default_factory=list)
 
 
@@ -43,6 +53,9 @@ class DevignSample:
     sample_id: str
     diff: str
     available_files: list[str]
-    is_vulnerable: bool
-    cwe_type: str
+    # Server-only fields (must never be surfaced in Observation)
+    is_vulnerable: Optional[bool] = None
+    cwe: Optional[str] = None
+    target_file: Optional[str] = None
+    files: Optional[dict[str, str]] = None
 

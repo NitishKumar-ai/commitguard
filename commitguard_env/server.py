@@ -48,8 +48,8 @@ def reset() -> dict[str, Any]:
     obs = env.reset()
     return {
         "observation": asdict(obs),
-        "done": obs.done,
-        "reward": obs.reward,
+        "done": False,
+        "reward": 0.0,
     }
 
 
@@ -59,11 +59,11 @@ def step(req: StepRequest) -> dict[str, Any]:
         action = parse_action(req.action)
     else:
         action = action_from_json(req.model_dump(exclude_none=True))
-    obs = env.step(action)
+    obs, reward, done = env.step(action)
     return {
         "observation": asdict(obs),
-        "done": obs.done,
-        "reward": obs.reward,
+        "done": done,
+        "reward": reward,
         "info": {"parse_error": action.parse_error},
     }
 

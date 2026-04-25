@@ -11,6 +11,19 @@ dependencies = [
   "openenv>=0.1.13",
 ]
 
+[project.optional-dependencies]
+train = [
+  "requests",
+  "torch",
+  "transformers",
+  "trl",
+  "accelerate",
+  "peft",
+  "datasets",
+  "wandb",
+  "matplotlib",
+]
+
 [project.scripts]
 server = "commitguard_env.server:main"
 

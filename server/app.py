@@ -1,8 +1,7 @@
-import uvicorn
-from commitguard_env.server import app
+from commitguard_env.server import app, main as server_main
 
 def main():
-    uvicorn.run("server.app:app", host="0.0.0.0", port=8000, reload=False)
+    server_main()
 
 if __name__ == "__main__":
     main()

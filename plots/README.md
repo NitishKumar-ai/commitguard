@@ -7,3 +7,7 @@ Expected outputs:
 - `baseline_vs_trained.png`
 - `per_cwe.png` (optional)
 
+Generated (local baseline):
+- `baseline_reward_curve.png`
+- `baseline_rewards.json`
+

@@ -1,60 +1,71 @@
 from __future__ import annotations
-import json
-from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .models import CommitGuardAction
+from .models import CommitGuardAction
+
 
 def compute_reward(
-    *, 
-    action: CommitGuardAction, 
-    ground_truth: dict, 
-    cwe_keywords: dict, 
-    step_count: int
+    *,
+    action: CommitGuardAction,
+    is_vulnerable: bool | None,
+    cwe: str | None,
+    target_file: str | None,
+    cwe_keywords: dict[str, list[str]] | None,
+    context_requests: int,
 ) -> float:
     """
-    Computes the scalar reward for an agent's action in the CommitGuard environment.
-    
-    Args:
-        action: The action object taken by the agent.
-        ground_truth: Dictionary containing 'is_vulnerable' and 'cwe_type'.
-        cwe_keywords: Dictionary mapping CWE IDs to keyword patterns.
-        step_count: The current step number in the episode.
+    Tiered RLVR reward (PRD §5.3, architecture contract).
+
+    Notes:
+    - Ground truth must remain server-only; caller passes it in.
+    - Reward is a scalar only; no label debug info.
     """
-    reward = 0.0
+    # Per-context-request penalty applies regardless of verdict.
+    reward = -0.05 * float(max(0, context_requests))
 
-    # Per-step efficiency penalty for context requests
-    if action.action_type == "request_context":
-        return -0.05
+    if action.parse_error:
+        return reward - 0.5
 
-    # Analyze action — no reward, just logged
+    # Small CoT bonus: reward 'analyze' steps that provide substantial reasoning.
+    # This provides a tiny positive float signal to encourage thinking.
     if action.action_type == "analyze":
-        return 0.0
+        reasoning_len = len(action.reasoning or "")
+        if reasoning_len > 50:
+            reward += min(0.05, 0.001 * (reasoning_len // 10))
+        return reward
 
-    # Verdict action — main reward signal
-    if action.action_type == "verdict":
-        # Correctness of binary classification
-        if action.is_vulnerable == ground_truth["is_vulnerable"]:
-            reward += 1.0
-            
-            # Bonus: correct CWE classification (only if vulnerable)
-            if ground_truth["is_vulnerable"]:
-                if action.vuln_type == ground_truth["cwe_type"]:
-                    reward += 0.5
-                
-                # Bonus: plausible exploit sketch
-                sketch = action.exploit_sketch or ""
-                if sketch:
-                    patterns = cwe_keywords.get(ground_truth["cwe_type"], [])
-                    sketch_lower = sketch.lower()
-                    if any(p.lower() in sketch_lower for p in patterns):
-                        reward += 0.5
-        else:
-            # Wrong classification
-            if action.is_vulnerable and not ground_truth["is_vulnerable"]:
-                reward -= 1.0  # False positive
-            else:
-                reward -= 0.5  # False negative
+    if action.action_type != "verdict":
+        return reward
+
+    if is_vulnerable is None:
+        return reward
+
+    pred = bool(action.is_vulnerable) if action.is_vulnerable is not None else None
+    if pred is None:
+        return reward - 0.5
+
+    if pred is True and is_vulnerable is True:
+        reward += 1.0
+        # Correct CWE (Discrete 0.5)
+        if cwe and action.vuln_type and action.vuln_type.strip().upper() == cwe.strip().upper():
+            reward += 0.5
+
+        # Proportional Keyword Match (Continuous Float up to 0.5)
+        kws = (cwe_keywords or {}).get(cwe or "", []) if cwe else []
+        if kws:
+            sketch = (action.exploit_sketch or "").lower()
+            matches = sum(1 for k in kws if k.lower() in sketch)
+            # Continuous signal: reward is proportional to percentage of keywords found.
+            reward += 0.5 * (matches / len(kws))
+        return reward
+
+    if pred is True and is_vulnerable is False:
+        return reward - 1.0
+
+    if pred is False and is_vulnerable is True:
+        return reward - 0.5
+
+    if pred is False and is_vulnerable is False:
+        return reward + 1.0
 
     return reward
+
