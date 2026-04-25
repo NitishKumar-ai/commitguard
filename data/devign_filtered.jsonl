@@ -1,0 +1,2 @@
+{"sample_id":"sample-001","diff":"--- a/auth.c\n+++ b/auth.c\n@@\n-int is_admin(char *user){\n-  return strcmp(user, \"admin\") == 0;\n-}\n+int is_admin(char *user){\n+  // BUG: substring check makes privilege escalation plausible\n+  return strstr(user, \"admin\") != 0;\n+}\n","available_files":["auth.c"]}
+

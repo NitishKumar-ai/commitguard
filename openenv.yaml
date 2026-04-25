@@ -1,0 +1,5 @@
+name: commitguard
+version: "0.1.0"
+description: "CommitGuard OpenEnv environment (FastAPI server)"
+port: 8000
+
