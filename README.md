@@ -52,7 +52,7 @@ This makes the task harder than static classification: the agent must manage inv
 
 Naive baseline strategies (always_vuln, always_safe, random) achieve near-zero precision, recall, and F1 — confirming no trivial strategy can game the reward signal.
 
-![Baseline evaluation metrics](plots/eval_baselines.png)
+![Baseline evaluation metrics](plots/readme_eval_baselines.gif)
 
 ## Results
 
@@ -63,15 +63,17 @@ We evaluated a baseline against the trained agent on 100 held-out samples.
 | Baseline | 50 / 100 | 50% |
 | Trained | 74 / 100 | 74% |
 
+![Vulnerability detection baseline vs trained](plots/readme_baseline_vs_trained.gif)
+
 Cumulative mean reward across 500 episodes shows all naive strategies (always_vuln, always_safe, random) plateau at low reward, while the trained agent learns to do better.
 
-![Baseline vs trained](plots/baseline_vs_trained.png)
+![Cumulative mean reward by strategy](plots/readme_cumulative_mean_reward.gif)
 
 The trained agent improves over the baseline on held-out commit-level vulnerability detection.
 
 Per-CWE accuracy shows the trained agent outperforms the baseline across all four vulnerability families (CWE-89, CWE-119, CWE-79, CWE-20).
 
-![Per-CWE breakdown](plots/per_cwe.png)
+![Per-CWE breakdown](plots/readme_per_cwe.gif)
 
 ## Training
 
@@ -95,9 +97,9 @@ If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores compl
 
 The reward curve below shows the naive always-vulnerable baseline — flat and penalized — which the trained agent must surpass. Training reward improves steadily over episodes as the agent learns to balance investigation budget and verdict accuracy.
 
-![Baseline reward curve](plots/baseline_reward_curve.png)
+![Baseline reward curve](plots/readme_baseline_reward_curve.gif)
 
-![Reward curve](plots/reward_curve.png)
+![GRPO training reward curve](plots/readme_grpo_reward_curve.gif)
 
 ## Links
 
