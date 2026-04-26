@@ -104,6 +104,7 @@ def main():
         wandb.init(project=WANDB_PROJECT, name=f"grpo-{MODEL_NAME.split('/')[-1]}-run1")
 
     # 1. Load Model
+    hf_token = os.getenv("HF_TOKEN")
     print(f"Loading {MODEL_NAME} with Unsloth 4-bit...")
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=MODEL_NAME,
@@ -111,6 +112,7 @@ def main():
         load_in_4bit=True,
         fast_inference=True,
         max_lora_rank=16,
+        token=hf_token,
     )
 
     model = FastLanguageModel.get_peft_model(
