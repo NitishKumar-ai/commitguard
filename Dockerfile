@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1
 COPY pyproject.toml README.md ./
 COPY commitguard_env/ commitguard_env/
 COPY data/ data/
+COPY configs/ configs/
 COPY server/ server/
 
 RUN pip install -e .
