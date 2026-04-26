@@ -1,0 +1,6 @@
+.git\
+plots\
+temp_deploy\
+.venv\
+__pycache__\
+.pytest_cache\
