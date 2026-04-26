@@ -1,0 +1,16 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": [
+    "scripts",
+    "commitguard_env",
+    "server",
+    "."
+  ],
+  "extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/scripts"
+  ],
+  "reportMissingImports": true,
+  "typeCheckingMode": "basic"
+}
