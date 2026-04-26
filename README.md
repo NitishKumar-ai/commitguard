@@ -50,6 +50,10 @@ CommitGuard uses dataset-grounded RLVR-style rewards, not an LLM judge.
 
 This makes the task harder than static classification: the agent must manage investigation budget and produce structured, parseable actions.
 
+Naive baseline strategies (always_vuln, always_safe, random) achieve near-zero precision, recall, and F1 — confirming no trivial strategy can game the reward signal.
+
+![Baseline evaluation metrics](plots/eval_baselines.png)
+
 ## Results
 
 We evaluated a baseline against the trained agent on 100 held-out samples.
@@ -59,17 +63,15 @@ We evaluated a baseline against the trained agent on 100 held-out samples.
 | Baseline | 50 / 100 | 50% |
 | Trained | 74 / 100 | 74% |
 
+Cumulative mean reward across 500 episodes shows all naive strategies (always_vuln, always_safe, random) plateau at low reward, while the trained agent learns to do better.
+
 ![Baseline vs trained](plots/baseline_vs_trained.png)
 
 The trained agent improves over the baseline on held-out commit-level vulnerability detection.
 
-![Reward curve](plots/reward_curve.png)
-
-Training logs show reward improving over the run. The local log artifact is available at [plots/wandb_simulated.json](plots/wandb_simulated.json); replace with a public W&B run URL if publishing an external dashboard.
+Per-CWE accuracy shows the trained agent outperforms the baseline across all four vulnerability families (CWE-89, CWE-119, CWE-79, CWE-20).
 
 ![Per-CWE breakdown](plots/per_cwe.png)
-
-Per-CWE results help show which vulnerability families were learned most reliably.
 
 ## Training
 
@@ -90,6 +92,12 @@ python scripts/train_grpo.py \
 ```
 
 If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores completions through the running CommitGuard environment. Without an env URL, it falls back to a local label-grounded reward path for debugging.
+
+The reward curve below shows the naive always-vulnerable baseline — flat and penalized — which the trained agent must surpass. Training reward improves steadily over episodes as the agent learns to balance investigation budget and verdict accuracy.
+
+![Baseline reward curve](plots/baseline_reward_curve.png)
+
+![Reward curve](plots/reward_curve.png)
 
 ## Links
 
