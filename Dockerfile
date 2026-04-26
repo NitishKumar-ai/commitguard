@@ -18,11 +18,9 @@ RUN pip install --no-cache-dir -U pip setuptools wheel
 # 1. Install Unsloth first (it's the most sensitive to environment)
 RUN pip install --no-cache-dir "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 
-# 2. Install specifically pinned versions of the RL stack
-# We use 0.12.1 for TRL and 4.48.2 for transformers - these are stable with Torch 2.5.1
+# 2. Pin RL stack — do NOT pin trl; Unsloth already installed a GRPO-compatible version
 RUN pip install --no-cache-dir \
     "transformers==4.48.2" \
-    "trl==0.12.1" \
     "peft==0.14.0" \
     "accelerate==1.2.1" \
     "bitsandbytes==0.45.0"
