@@ -81,7 +81,9 @@ def state() -> dict[str, Any]:
 
 
 def main() -> None:
-    uvicorn.run("commitguard_env.server:app", host="0.0.0.0", port=8000, reload=False)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("commitguard_env.server:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":
