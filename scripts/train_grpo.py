@@ -10,9 +10,11 @@ from datasets import Dataset, load_dataset
 from trl import GRPOConfig, GRPOTrainer
 from unsloth import FastLanguageModel, PatchFastRL
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from agent_prompt import SYSTEM_PROMPT, get_agent_prompt
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from agent_prompt import SYSTEM_PROMPT
 from commitguard_env.parse_action import parse_action
 from commitguard_env.reward import compute_reward
 
@@ -23,7 +25,6 @@ MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.2-3B-Instruct")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs/commitguard-llama-3b-grpo")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "commitguard")
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
 CWE_KEYWORDS_PATH = REPO_ROOT / "data" / "cwe_keywords.json"
 CWE_KEYWORDS: dict[str, list[str]] = {}
 if CWE_KEYWORDS_PATH.exists():
@@ -99,6 +100,16 @@ def main():
     ap.add_argument("--push-to-hub", action="store_true")
     ap.add_argument("--hub-model-id", type=str, default="inmodel-labs/commitguard-llama-3b")
     args = ap.parse_args()
+
+    if args.num_generations < 2:
+        raise ValueError("--num-generations must be at least 2 for GRPO")
+    effective_batch = args.batch_size * args.grad_accum
+    if effective_batch % args.num_generations != 0:
+        raise ValueError(
+            "For single-process GRPO training, --batch-size * --grad-accum "
+            f"must be divisible by --num-generations; got {args.batch_size} * "
+            f"{args.grad_accum} = {effective_batch}, num_generations={args.num_generations}."
+        )
 
     if not args.no_wandb:
         wandb.init(project=WANDB_PROJECT, name=f"grpo-{MODEL_NAME.split('/')[-1]}-run1")
