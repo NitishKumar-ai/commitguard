@@ -59,3 +59,12 @@ class DevignSample:
     target_file: Optional[str] = None
     files: Optional[dict[str, str]] = None
 
+
+@dataclass(frozen=True, slots=True)
+class ScanResult:
+    is_vulnerable: bool
+    cwe: Optional[str]
+    exploit_sketch: Optional[str]
+    raw_response: str
+    parse_error: Optional[str] = None
+

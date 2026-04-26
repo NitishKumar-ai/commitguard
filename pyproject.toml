@@ -33,6 +33,7 @@ train = [
 ]
 
 [project.scripts]
+commitguard = "commitguard_env.cli:main"
 server = "commitguard_env.server:main"
 
 [tool.setuptools]
