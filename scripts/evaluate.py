@@ -9,24 +9,14 @@ from pathlib import Path
 import sys
 
 # Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.agent_prompt import SYSTEM_PROMPT
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
 
-def parse_xml_action(text):
-    """Extract action fields from XML-tagged model output."""
-    def extract(tag, default=None):
-        match = re.search(f"<{tag}>(.*?)</{tag}>", text, re.DOTALL)
-        return match.group(1).strip() if match else default
-
-    is_vuln_str = extract("is_vulnerable", "false")
-    return {
-        "action_type": "verdict",
-        "is_vulnerable": is_vuln_str.lower() == "true",
-        "vuln_type": extract("vuln_type", "unknown"),
-        "exploit_sketch": extract("exploit_sketch", ""),
-    }
+from agent_prompt import SYSTEM_PROMPT
+from commitguard_env.parse_action import parse_action
 
 def format_eval_prompt(sample):
+    # Matches the format_prompt in train_grpo.py for consistency
     return (
         f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
         f"{SYSTEM_PROMPT}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n"
@@ -94,10 +84,11 @@ def evaluate(model_path, test_file, is_lora=False, base_model=None, output_file=
             )
 
         response = tokenizer.decode(output[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-        prediction = parse_xml_action(response)
+        # Use the official parser from commitguard_env
+        prediction = parse_action(response)
 
         gt_vulnerable = bool(sample["is_vulnerable"])
-        pred_vulnerable = prediction.get("is_vulnerable", False)
+        pred_vulnerable = bool(prediction.is_vulnerable) if prediction.is_vulnerable is not None else False
 
         correct = pred_vulnerable == gt_vulnerable
         if correct:
@@ -116,14 +107,14 @@ def evaluate(model_path, test_file, is_lora=False, base_model=None, output_file=
         if correct:
             results["summary"]["cwe_breakdown"][cwe]["correct"] += 1
 
-        if gt_vulnerable and correct and prediction.get("vuln_type") == cwe:
+        if gt_vulnerable and correct and prediction.vuln_type and prediction.vuln_type.strip().upper() == cwe.strip().upper():
             results["summary"]["correct_cwe"] += 1
 
         results["predictions"].append({
             "sample_id": sample["sample_id"],
             "ground_truth": gt_vulnerable,
             "predicted": pred_vulnerable,
-            "predicted_cwe": prediction.get("vuln_type"),
+            "predicted_cwe": prediction.vuln_type,
             "actual_cwe": cwe,
             "response": response,
         })

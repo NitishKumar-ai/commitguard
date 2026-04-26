@@ -93,7 +93,7 @@ def main():
     ap.add_argument("--save-steps", type=int, default=50)
     ap.add_argument("--num-generations", type=int, default=8)
     ap.add_argument("--batch-size", type=int, default=1)
-    ap.add_argument("--grad-accum", type=int, default=4)
+    ap.add_argument("--grad-accum", type=int, default=8)
     ap.add_argument("--lr", type=float, default=5e-6)
     ap.add_argument("--no-wandb", action="store_true")
     ap.add_argument("--push-to-hub", action="store_true")
