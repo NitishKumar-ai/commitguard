@@ -15,18 +15,12 @@ WORKDIR /app
 # Upgrade pip
 RUN pip install --no-cache-dir -U pip setuptools wheel
 
-# 1. Install Unsloth first (it's the most sensitive to environment)
+# 1. Install Unsloth — it pulls compatible trl, transformers, peft, accelerate
 RUN pip install --no-cache-dir "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 
-# 2. Pin RL stack — do NOT pin trl; Unsloth already installed a GRPO-compatible version
+# 2. Install remaining deps (don't re-pin packages Unsloth already resolved)
 RUN pip install --no-cache-dir \
-    "transformers==4.48.2" \
-    "peft==0.14.0" \
-    "accelerate==1.2.1" \
-    "bitsandbytes==0.45.0"
-
-# 3. Install remaining data and server dependencies
-RUN pip install --no-cache-dir \
+    bitsandbytes \
     datasets \
     wandb \
     matplotlib \
