@@ -10,7 +10,9 @@ _TAG_RE = re.compile(r"<(?P<tag>[a-zA-Z_]+)>(?P<val>.*?)</(?P=tag)>", re.DOTALL)
 
 
 def _first(tag: str, text: str) -> Optional[str]:
-    m = re.search(rf"<{re.escape(tag)}>(.*?)</{re.escape(tag)}>", text, flags=re.DOTALL)
+    # Robust case-insensitive search with optional whitespace inside tags
+    pattern = rf"<[ \t]*{re.escape(tag)}[ \t]*>(.*?)</[ \t]*{re.escape(tag)}[ \t]*>"
+    m = re.search(pattern, text, flags=re.DOTALL | re.IGNORECASE)
     if not m:
         return None
     return m.group(1).strip()
