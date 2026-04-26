@@ -23,7 +23,7 @@ This use case is for security researchers, data scientists, and ML engineers tra
 ### 1.4 Agentic Evaluation
 - **Scenario:** Evaluate the trained LoRA adapter on 100 held-out test samples.
 - **Action:** Run `python scripts/evaluate.py --adapter_path ./outputs/commitguard-final`
-- **Expected Result:** The agent executes a 5-step loop (request_context -> analyze -> verdict). A detailed `eval_results.json` report is generated showing accuracy per CWE.      
+- **Expected Result:** The agent executes a 5-step loop (request_context -> analyze -> verdict). A detailed `eval_results.json` report is generated showing accuracy per CWE.
 
 ### 1.5 Visualization
 - **Scenario:** Generate performance plots for reporting.
