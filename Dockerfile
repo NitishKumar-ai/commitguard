@@ -1,25 +1,15 @@
-FROM pytorch/pytorch:2.6.0-cuda12.6-cudnn9-devel
+# Use the official Unsloth image which has the stack pre-configured and tested
+FROM unsloth/unsloth:latest
 
 # Avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies needed for bitsandbytes and Unsloth
-RUN apt-get update && apt-get install -y \
-    git \
-    libaio-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-# Upgrade pip
-RUN pip install --no-cache-dir -U pip setuptools wheel
-
-# 1. Install Unsloth — it pulls compatible trl, transformers, peft, accelerate
-RUN pip install --no-cache-dir "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
-
-# 2. Install remaining deps (don't re-pin packages Unsloth already resolved)
+# The Unsloth image already has torch, transformers, and unsloth installed.
+# We just need to install our project-specific dependencies and ensure TRL is at the right version.
 RUN pip install --no-cache-dir \
-    bitsandbytes \
+    "trl==0.12.1" \
     datasets \
     wandb \
     matplotlib \
@@ -31,10 +21,10 @@ RUN pip install --no-cache-dir \
 # Copy the project files
 COPY . .
 
-# Install the local package in editable mode
+# Install the local package
 RUN pip install -e .
 
-# Set environment variables
+# Set environment variables for real-time logging and configuration
 ENV PYTHONUNBUFFERED=1
 ENV MODEL_NAME="meta-llama/Llama-3.2-3B-Instruct"
 ENV OUTPUT_DIR="outputs/commitguard-llama-3b-grpo"
