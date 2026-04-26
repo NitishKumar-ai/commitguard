@@ -99,6 +99,21 @@ If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores compl
 - **Trained model target:** [inmodel-labs/commitguard-llama-3b](https://huggingface.co/inmodel-labs/commitguard-llama-3b)
 - **GCE training runbook:** [scripts/gce_vm_runbook.md](scripts/gce_vm_runbook.md)
 
+## Project Structure
+
+```text
+commitguard/
+├── commitguard_env/    # Core logic (environment, server, model)
+├── docs/               # Detailed documentation and guides
+├── data/               # Devign-derived datasets
+├── scripts/            # Training and evaluation entrypoints
+├── results/            # Evaluation artifacts and JSON reports
+├── notebooks/          # Interactive training notebooks
+├── plots/              # Visualization artifacts
+├── tests/              # Comprehensive test suite
+└── configs/            # Configuration files
+```
+
 ## Quickstart
 
 Install locally:
