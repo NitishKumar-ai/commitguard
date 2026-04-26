@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 import requests
-from commitguard_env.models import CommitGuardAction, CommitGuardObservation
 
 class CommitGuardClient:
     def __init__(self, base_url: str):

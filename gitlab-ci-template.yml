@@ -6,7 +6,7 @@
     FAIL_ON_VULNERABLE: "true"
   before_script:
     - apt-get update && apt-get install -y git
-    - pip install commitguard  # Assuming published to PyPI, or pip install git+...
+    - pip install commitguard[scan]  # Assuming published to PyPI, or pip install git+...
   script:
     - |
       FAIL_ARG=""
