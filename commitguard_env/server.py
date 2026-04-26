@@ -36,6 +36,7 @@ class StepRequest(BaseModel):
     is_vulnerable: bool | None = None
     vuln_type: str | None = None
     exploit_sketch: str | None = None
+    episode_id: str | None = None
 
 
 @app.get("/health")
@@ -65,7 +66,7 @@ def step(req: StepRequest) -> dict[str, Any]:
         action = parse_action(req.action)
     else:
         action = action_from_json(req.model_dump(exclude_none=True))
-    obs, reward, done = env.step(action)
+    obs, reward, done = env.step(action, episode_id=req.episode_id)
     return {
         "observation": asdict(obs),
         "done": done,
@@ -75,8 +76,8 @@ def step(req: StepRequest) -> dict[str, Any]:
 
 
 @app.get("/state")
-def state() -> dict[str, Any]:
-    st = env.state()
+def state(episode_id: str | None = None) -> dict[str, Any]:
+    st = env.state(episode_id=episode_id)
     return {"state": asdict(st)}
 
 

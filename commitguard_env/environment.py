@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import random
 import uuid
+from collections import OrderedDict
 from dataclasses import replace
 from pathlib import Path
 
@@ -11,12 +12,25 @@ from .reward import compute_reward
 
 
 class CommitGuardEnvironment:
+    _MAX_SESSIONS = 64
+
     def __init__(self, *, data_path: Path) -> None:
         self._data_path = data_path
         self._samples: list[DevignSample] = []
-        self._state: CommitGuardState | None = None
+        self._sessions: OrderedDict[str, CommitGuardState] = OrderedDict()
+        self._latest_episode_id: str | None = None
         self._rng = random.Random(0)
         self._cwe_keywords: dict[str, list[str]] = {}
+
+    def _resolve_session(self, episode_id: str | None) -> CommitGuardState:
+        eid = episode_id or self._latest_episode_id
+        if eid and eid in self._sessions:
+            return self._sessions[eid]
+        raise ValueError("no_active_session")
+
+    def _evict_if_needed(self) -> None:
+        while len(self._sessions) > self._MAX_SESSIONS:
+            self._sessions.popitem(last=False)
 
     def load(self) -> None:
         if self._samples:
@@ -67,13 +81,17 @@ class CommitGuardEnvironment:
             sample = self._rng.choice(self._samples)
         
         episode_id = str(uuid.uuid4())
-        self._state = CommitGuardState(
+        state = CommitGuardState(
             episode_id=episode_id,
             current_sample_id=sample.sample_id,
             step_count=0,
             context_requests=0,
             history=[],
         )
+        self._sessions[episode_id] = state
+        self._latest_episode_id = episode_id
+        self._evict_if_needed()
+
         return CommitGuardObservation(
             episode_id=episode_id,
             diff=sample.diff,
@@ -82,17 +100,19 @@ class CommitGuardEnvironment:
             budget_remaining=5,
         )
 
-    def step(self, action: CommitGuardAction) -> tuple[CommitGuardObservation, float, bool]:
-        if self._state is None:
-            _ = self.reset()
+    def step(self, action: CommitGuardAction, episode_id: str | None = None) -> tuple[CommitGuardObservation, float, bool]:
+        try:
+            state = self._resolve_session(episode_id)
+        except ValueError:
+            # Auto-reset if no active session, matching previous behavior
+            obs = self.reset()
+            state = self._sessions[obs.episode_id]
 
-        assert self._state is not None
-        next_step = self._state.step_count + 1
-
-        sample = next(s for s in self._samples if s.sample_id == self._state.current_sample_id)
+        next_step = state.step_count + 1
+        sample = next(s for s in self._samples if s.sample_id == state.current_sample_id)
 
         context_snippets: list[ContextSnippet] = []
-        context_requests = self._state.context_requests
+        context_requests = state.context_requests
         if action.action_type == "request_context":
             context_requests += 1
             if action.file_path and sample.files and action.file_path in sample.files:
@@ -120,12 +140,12 @@ class CommitGuardEnvironment:
 
         done = bool(action.action_type == "verdict" or next_step >= 5)
 
-        self._state = replace(
-            self._state,
+        new_state = replace(
+            state,
             step_count=next_step,
             context_requests=context_requests,
             history=[
-                *self._state.history,
+                *state.history,
                 {
                     "step": next_step,
                     "action_type": action.action_type,
@@ -133,9 +153,10 @@ class CommitGuardEnvironment:
                 },
             ],
         )
+        self._sessions[new_state.episode_id] = new_state
 
         obs = CommitGuardObservation(
-            episode_id=self._state.episode_id,
+            episode_id=new_state.episode_id,
             diff=sample.diff,
             available_files=sample.available_files,
             context_snippets=context_snippets,
@@ -145,7 +166,8 @@ class CommitGuardEnvironment:
         )
         return obs, reward, done
 
-    def state(self) -> CommitGuardState:
-        if self._state is None:
+    def state(self, episode_id: str | None = None) -> CommitGuardState:
+        try:
+            return self._resolve_session(episode_id)
+        except ValueError:
             return CommitGuardState(episode_id="", current_sample_id="", step_count=0, context_requests=0, history=[])
-        return self._state
