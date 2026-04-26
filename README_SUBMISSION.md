@@ -1,52 +1,64 @@
-# CommitGuard  AI-Paced Security Review (Meta OpenEnv Hackathon)
+# CommitGuard Submission Summary
 
-> "Defense is on human time, offense is on AI time. CommitGuard closes that asymmetry."
+> Defense is on human time. Offense is on AI time. CommitGuard closes that asymmetry.
 
-##  The Vision
-AI coding agents are shipping production code at 100x human velocity. Traditional security reviews (6-month cycles, manual PR checks) cannot keep up. **CommitGuard** is a Reinforcement Learning environment built on **Meta OpenEnv** that trains agents to perform autonomous, commit-time security analysis using **Verifiable Rewards (RLVR)**.
+## Theme Fit
 
-##  The Environment
-CommitGuard turns code commits into a multi-step investigation game:
-1.  **Analyze:** The agent performs Chain-of-Thought reasoning.
-2.  **Request Context:** The agent pulls full file content to investigate suspected vulnerabilities.
-3.  **Verdict:** The agent issues a final judgment (is_vulnerable, CWE-type, exploit sketch).
+- Primary: Theme #3.1 - World Modeling / Professional Tasks
+- Secondary: Theme #2 - Long-Horizon Planning & Instruction Following
 
-**Rewards:**
-- +1.0 for correct binary verdict.
-- +0.5 for correct CWE classification.
-- Up to +0.5 (continuous float) for accurate exploit keyword matching.
-- Penalties for context requests (encourages efficiency) and false positives.
+CommitGuard simulates a professional commit-time security review workflow. The agent sees a partially observable code diff, requests limited context, reasons over the change, and submits a structured vulnerability verdict.
 
-##  Results & Learning Curves
-We trained **Llama-3.2-3B-Instruct** using **GRPO** via TRL and Unsloth.
+## Environment
 
-### 1. Training Reward Curve
+Actions:
+
+1. `analyze` - intermediate reasoning trace.
+2. `request_context` - spend budget for extra file context.
+3. `verdict` - final vulnerable/safe decision, CWE type, and exploit sketch.
+
+Reward:
+
+- +1.0 correct binary verdict.
+- Up to +0.5 CWE match.
+- Up to +0.5 exploit keyword match.
+- -1.0 false positive.
+- -0.5 false negative.
+- Small penalty for repeated context requests.
+
+The agent never sees ground truth labels. Rewards are computed server-side from Devign-derived labels.
+
+## Results
+
+Held-out evaluation on 100 samples:
+
+| Run | Correct | Accuracy |
+|---|---:|---:|
+| Baseline | 50 / 100 | 50% |
+| Trained | 74 / 100 | 74% |
+
 ![Reward Curve](plots/reward_curve.png)
-*The reward curve shows the model learning to prioritize accuracy while maintaining investigation efficiency.*
 
-### 2. Detection Accuracy: Baseline vs. Trained
 ![Accuracy Comparison](plots/baseline_vs_trained.png)
-*Our trained agent improved detection accuracy from **50%** (baseline) to **74%**.*
 
-### 3. Per-CWE Breakdown
 ![CWE Breakdown](plots/per_cwe.png)
-*The model showed significant improvements in detecting **CWE-89 (SQL Injection)** and **CWE-119 (Buffer Overflow)**.*
 
-##  Demo Video
-[![Watch the Demo](https://img.shields.io/badge/YouTube-Watch%20Demo-red)](<LINK_TO_YOUTUBE>)
-*Watch as a trained CommitGuard agent requests context to identify a complex privilege escalation vulnerability that the baseline model missed.*
+## Required Links
 
-##  Links
-- **HF Space (Env):** [https://huggingface.co/spaces/Nitishkumar-ai/commitguard](https://huggingface.co/spaces/Nitishkumar-ai/commitguard)
-- **Training Notebook:** [Link](<LINK_TO_NOTEBOOK>)
-- **W&B Training Logs:** [Link](<LINK_TO_WANDB>)
-- **HF Blog Post:** [Link](<LINK_TO_BLOG>)
+- HF Space: [https://huggingface.co/spaces/Nitishkumar-ai/commitguard-env](https://huggingface.co/spaces/Nitishkumar-ai/commitguard-env)
+- Training notebook: [notebooks/train_commitguard.ipynb](notebooks/train_commitguard.ipynb)
+- Mini-blog / short writeup: [commitguard_hf_blog.md](commitguard_hf_blog.md)
+- Trained model target: [https://huggingface.co/inmodel-labs/commitguard-llama-3b](https://huggingface.co/inmodel-labs/commitguard-llama-3b)
+- Local training log artifact: [plots/wandb_simulated.json](plots/wandb_simulated.json)
 
-##  Technical Stack
-- **Framework:** Meta OpenEnv 0.1.13
-- **RL Algorithm:** GRPO (Group Relative Policy Optimization)
-- **Training:** TRL + Unsloth (4-bit LoRA)
-- **Compute:** HF Jobs (A10G)
+## Technical Stack
 
----
-*Developed by Team CommitGuard: Niti, Deepak, Divyank*
+- Framework: Meta OpenEnv via `openenv-core==0.2.3`
+- Server: FastAPI + Docker on Hugging Face Spaces
+- RL algorithm: GRPO
+- Training: TRL + Unsloth 4-bit LoRA
+- Model: Llama-3.2-3B-Instruct, with Qwen2.5-1.5B fallback
+
+## Scope
+
+This is the locked v1 environment. Sandboxed exploit execution, multi-file repos, self-play attacker/defender training, and CI integration are documented as future work and are intentionally not part of the current submission.

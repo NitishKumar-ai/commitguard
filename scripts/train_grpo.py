@@ -4,6 +4,7 @@ import json
 import argparse
 from pathlib import Path
 
+import requests
 import torch
 import wandb
 from datasets import Dataset, load_dataset
@@ -24,6 +25,7 @@ PatchFastRL("GRPO", FastLanguageModel)
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.2-3B-Instruct")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "outputs/commitguard-llama-3b-grpo")
 WANDB_PROJECT = os.getenv("WANDB_PROJECT", "commitguard")
+ENV_URL = os.getenv("COMMITGUARD_ENV_URL", "").rstrip("/")
 
 CWE_KEYWORDS_PATH = REPO_ROOT / "data" / "cwe_keywords.json"
 CWE_KEYWORDS: dict[str, list[str]] = {}
@@ -34,11 +36,36 @@ if CWE_KEYWORDS_PATH.exists():
 SAMPLE_LABELS: dict[str, dict] = {}
 
 
-# --- Local reward: no HTTP, no latency ---
-def get_reward_local(prompts, completions, sample_id, **kwargs) -> list[float]:
+def _completion_text(completion) -> str:
+    return completion[-1]["content"] if isinstance(completion, list) else str(completion)
+
+
+def get_reward_from_env(prompts, completions, sample_id, **kwargs) -> list[float]:
+    """
+    Judge-preferred path: score completions through a running CommitGuard env.
+
+    The env owns ground truth and returns only scalar reward, preserving the
+    no-leak server/client split required by the submission.
+    """
     rewards = []
     for p_id, completion in zip(sample_id, completions):
-        text = completion[-1]["content"] if isinstance(completion, list) else str(completion)
+        try:
+            text = _completion_text(completion)
+            reset = requests.post(f"{ENV_URL}/reset", json={"sample_id": p_id}, timeout=10)
+            reset.raise_for_status()
+            step = requests.post(f"{ENV_URL}/step", json={"action": text}, timeout=10)
+            step.raise_for_status()
+            rewards.append(float(step.json().get("reward", -1.0)))
+        except Exception:
+            rewards.append(-1.0)
+    return rewards
+
+
+def get_reward_local(prompts, completions, sample_id, **kwargs) -> list[float]:
+    """Local fallback for debugging when no env URL is available."""
+    rewards = []
+    for p_id, completion in zip(sample_id, completions):
+        text = _completion_text(completion)
         action = parse_action(text)
         labels = SAMPLE_LABELS.get(p_id, {})
         reward = compute_reward(
@@ -88,6 +115,7 @@ def build_dataset(n_samples: int) -> Dataset:
 
 
 def main():
+    global ENV_URL
     ap = argparse.ArgumentParser()
     ap.add_argument("--samples", type=int, default=200)
     ap.add_argument("--max-steps", type=int, default=300)
@@ -99,7 +127,9 @@ def main():
     ap.add_argument("--no-wandb", action="store_true")
     ap.add_argument("--push-to-hub", action="store_true")
     ap.add_argument("--hub-model-id", type=str, default="inmodel-labs/commitguard-llama-3b")
+    ap.add_argument("--env-url", default=ENV_URL, help="Running CommitGuard env URL, e.g. https://...hf.space")
     args = ap.parse_args()
+    ENV_URL = args.env_url.rstrip("/")
 
     if args.num_generations < 2:
         raise ValueError("--num-generations must be at least 2 for GRPO")
@@ -163,11 +193,17 @@ def main():
         fp16=not torch.cuda.is_bf16_supported(),
     )
 
+    reward_func = get_reward_from_env if ENV_URL else get_reward_local
+    if ENV_URL:
+        print(f"Using live CommitGuard env for rewards: {ENV_URL}")
+    else:
+        print("COMMITGUARD_ENV_URL not set; using local label-grounded reward fallback.")
+
     # 4. Train
     trainer = GRPOTrainer(
         model=model,
         processing_class=tokenizer,
-        reward_funcs=[get_reward_local],
+        reward_funcs=[reward_func],
         args=training_args,
         train_dataset=dataset,
     )

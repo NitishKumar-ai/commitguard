@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+ENV/
+.uv-cache/
+wandb/
+outputs/
+temp_deploy/
+temp_space/
+temp_write_probe/
+temp_pip_*/
+*.log
+.git/

@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 COPY commitguard_env/ commitguard_env/
 COPY data/ data/
 COPY server/ server/

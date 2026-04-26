@@ -32,7 +32,7 @@ def test_reward_true_positive_wrong_cwe() -> None:
         cwe_keywords={"CWE-89": ["sql"]},
         context_requests=0,
     )
-    assert r == 1.5  # +1.0 verdict, +0.5 exploit match, no CWE bonus
+    assert r == 1.75  # +1.0 verdict, +0.5 exploit match, +0.25 CWE family bonus
 
 
 def test_reward_false_positive() -> None:

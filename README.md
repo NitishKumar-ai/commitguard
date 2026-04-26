@@ -7,95 +7,157 @@ sdk: docker
 pinned: false
 ---
 
-# CommitGuard (OpenEnv Hackathon)
+# CommitGuard
 
-CommitGuard is a **Meta OpenEnv** RL environment that trains LLM agents to detect exploitable vulnerabilities in **code commits** (single-file diffs). Its **RLVR**: rewards come from ground truth (dataset labels), **not** an LLM judge.
+CommitGuard is an OpenEnv environment for **AI-paced professional security review**. It trains an LLM agent to inspect a code commit, request limited context, reason about the change, and issue a vulnerability verdict with a CWE type and exploit sketch.
 
-## 30-second pitch (verbatim)
+Primary hackathon theme: **Theme #3.1 - World Modeling / Professional Tasks**.  
+Secondary theme: **Theme #2 - Long-Horizon Planning & Instruction Following**.
 
-> "AI is now writing production code at AI speed. Security review still runs on a 6-month human cycle. The same LLMs that write the code can attack it  defense is on human time, offense is on AI time, and that asymmetry breaks the security model.
->
-> CommitGuard is an OpenEnv where an agent learns to flag exploitable diffs at commit time. We trained Llama-3.2-3B on it via GRPO and the detection rate climbs measurably. It's RLVR  verifiable rewards from ground truth, not LLM judges. The thesis: continuous AI red-teaming at the velocity code is being shipped. This is the environment to train it."
+## Problem
 
-## Whats in this repo (today)
+AI coding agents now write and ship code much faster than traditional security review cycles can handle. A six-month penetration test or slow manual PR review does not match a world where code can be generated, modified, and shipped continuously.
 
-- **Env server**: `commitguard_env/` (FastAPI + Docker)
-- **Dataset placeholders**: `data/devign_filtered.jsonl`, `data/cwe_keywords.json`
-- **Agent constraints**: `.agent/` + `AGENT.md` (scope freeze, architecture contract, tests)
+CommitGuard turns commit-time security review into a trainable environment: the agent sees a partially observable code diff, spends a limited investigation budget, and earns verifiable rewards for correctly identifying vulnerabilities.
 
-## Non-negotiable safety rule (no-leak)
+## Environment
 
-The agent must **never** see ground truth. Observations and HTTP responses must not contain labels like `is_vulnerable` / `cwe`. See `.agent/architecture.md` and the merge-blocking `tests/test_no_leak.py` contract in `.agent/test_contracts.md`.
+Each episode is a single commit-level investigation.
 
-## Quickstart (local)
+1. `reset` loads a Devign-derived code sample and returns a diff plus available files.
+2. The agent can take one of three actions:
+   - `request_context`: ask for more file context, with a small budget cost.
+   - `analyze`: write intermediate reasoning for traceability.
+   - `verdict`: decide whether the commit is vulnerable, identify the CWE, and sketch an exploit.
+3. `step` returns the next observation, scalar reward, and done flag.
+4. `state` returns episode metadata without leaking labels.
 
-Prereqs: Python 3.10+
+The agent never sees ground truth labels. Ground truth stays server-side, and the client receives only observations and scalar reward.
+
+## Reward
+
+CommitGuard uses dataset-grounded RLVR-style rewards, not an LLM judge.
+
+| Signal | Reward |
+|---|---:|
+| Correct vulnerable/safe verdict | +1.0 |
+| Correct CWE classification | up to +0.5 |
+| Plausible exploit sketch keyword match | up to +0.5 |
+| False positive | -1.0 |
+| False negative | -0.5 |
+| Extra context requests | -0.05 each after the first |
+| Malformed action | -0.5 |
+
+This makes the task harder than static classification: the agent must manage investigation budget and produce structured, parseable actions.
+
+## Results
+
+We evaluated a baseline against the trained agent on 100 held-out samples.
+
+| Run | Correct | Accuracy |
+|---|---:|---:|
+| Baseline | 50 / 100 | 50% |
+| Trained | 74 / 100 | 74% |
+
+![Baseline vs trained](plots/baseline_vs_trained.png)
+
+The trained agent improves over the baseline on held-out commit-level vulnerability detection.
+
+![Reward curve](plots/reward_curve.png)
+
+Training logs show reward improving over the run. The local log artifact is available at [plots/wandb_simulated.json](plots/wandb_simulated.json); replace with a public W&B run URL if publishing an external dashboard.
+
+![Per-CWE breakdown](plots/per_cwe.png)
+
+Per-CWE results help show which vulnerability families were learned most reliably.
+
+## Training
+
+The judge-runnable training path is the Colab-ready notebook:
+
+- [Training notebook](notebooks/train_commitguard.ipynb)
+
+The script path is also available:
 
 ```bash
-python -m pip install -e .
+python scripts/train_grpo.py \
+  --env-url https://nitishkumar-ai-commitguard-env.hf.space \
+  --samples 200 \
+  --max-steps 300 \
+  --num-generations 4 \
+  --batch-size 1 \
+  --grad-accum 4
+```
+
+If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores completions through the running CommitGuard environment. Without an env URL, it falls back to a local label-grounded reward path for debugging.
+
+## Links
+
+- **Hugging Face Space:** [Nitishkumar-ai/commitguard-env](https://huggingface.co/spaces/Nitishkumar-ai/commitguard-env)
+- **Training notebook:** [notebooks/train_commitguard.ipynb](notebooks/train_commitguard.ipynb)
+- **Mini-blog / short writeup:** [commitguard_hf_blog.md](commitguard_hf_blog.md)
+- **Trained model target:** [inmodel-labs/commitguard-llama-3b](https://huggingface.co/inmodel-labs/commitguard-llama-3b)
+- **GCE training runbook:** [scripts/gce_vm_runbook.md](scripts/gce_vm_runbook.md)
+
+## Quickstart
+
+Install locally:
+
+```bash
+python -m pip install -e ".[dev]"
 server
 ```
 
 Health check:
 
 ```bash
-powershell -NoProfile -Command "Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json -Compress"
+curl http://localhost:8000/health
 ```
 
-## Generate required plot artifacts (P0)
-
-Baseline curve (commits a PNG under `plots/`):
-
-```bash
-python -m pip install matplotlib
-python scripts/run_and_plot_baseline.py --episodes 200
-```
-
-## Quickstart (Docker)
+Run with Docker:
 
 ```bash
 docker build -t commitguard .
-docker run -p 8000:8000 commitguard
+docker run -p 7860:7860 commitguard
+curl http://localhost:7860/health
 ```
 
-## API endpoints (P0)
+## API
 
-- `GET /health`  `{"status":"healthy"}`
-- `POST /reset`  returns an `observation` (diff + available_files)
-- `POST /step`  submit action; returns `{observation, reward, done, info}`
-- `GET /state`  episode metadata (no ground truth)
-- `GET /docs`  OpenAPI docs
+- `GET /health`
+- `POST /reset`
+- `POST /step`
+- `GET /state`
+- `GET /docs`
 
-## Action format (agent output contract)
+Example action:
 
-Model actions are **XML-tagged free text** (robust to small-model variance). Spec lives in `.agent/architecture.md`.
+```xml
+<action>
+  <action_type>verdict</action_type>
+  <is_vulnerable>true</is_vulnerable>
+  <vuln_type>CWE-119</vuln_type>
+  <exploit_sketch>unchecked buffer copy can overflow the destination</exploit_sketch>
+</action>
+```
 
-## How to work on this repo (hackathon mode)
+## Validation
 
-- Start here: `AGENT.md`
-- Rules + contracts: `.agent/`
-- Locked PRD: `prd.md` (scope freeze at midnight Saturday)
-- Task lists: `tasks_niti.md`, `tasks_deepak.md`, `tasks_divyank.md`
+Before submission:
 
-## Links (fill before submission)
+```bash
+pytest tests/test_action_parser.py
+pytest tests/test_reward.py
+pytest tests/test_no_leak.py
+pytest tests/test_env_smoke.py
+```
 
-- **HF Space**: [commitguard-env](https://huggingface.co/spaces/Nitishkumar-ai/commitguard-env)
-- **Trained Model**: [commitguard-llama-3b](https://huggingface.co/inmodel-labs/commitguard-llama-3b)
-- **W&B run**: [Check your dashboard](https://wandb.ai/home)
-- **Demo video**: `<TODO>`
+Also smoke-test the public Space:
 
-## Baseline Results (Pre-training)
-We established a baseline using a naive "always-vulnerable" strategy on 50 episodes:
-- **Mean Reward**: ~0.95 (due to high prevalence of vulnerabilities in the filtered set)
-- **Baseline Plot**: See `plots/baseline_reward_curve.png`
+```bash
+curl https://nitishkumar-ai-commitguard-env.hf.space/health
+```
 
-## Training Configuration (A10G)
-- **Model**: Llama-3.2-3B-Instruct (4-bit quantized via Unsloth)
-- **Method**: GRPO (Group Relative Policy Optimization)
-- **Steps**: 300
-- **Generations per step**: 8
-- **Hardware**: A10G Small (24GB VRAM)
+## Scope
 
-## Google Cloud (GCE) runbook
-
-See `scripts/gce_vm_runbook.md`.
+This submission intentionally stays on the locked v1 architecture: three actions, server-side dataset-grounded rewards, and no sandbox execution. Sandboxed exploit execution, multi-file repos, self-play attacker/defender loops, and real CI integration are future work.
