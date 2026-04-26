@@ -1,0 +1,16 @@
+.commitguard-scan:
+  image: python:3.12-slim
+  stage: test
+  variables:
+    COMMITGUARD_MODEL: "inmodel-labs/commitguard-llama-3b"
+    FAIL_ON_VULNERABLE: "true"
+  before_script:
+    - apt-get update && apt-get install -y git
+    - pip install commitguard  # Assuming published to PyPI, or pip install git+...
+  script:
+    - |
+      FAIL_ARG=""
+      if [ "$FAIL_ON_VULNERABLE" = "true" ]; then
+        FAIL_ARG="--fail-on-vulnerable"
+      fi
+      commitguard scan --commit HEAD --format text $FAIL_ARG --model $COMMITGUARD_MODEL

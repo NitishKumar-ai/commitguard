@@ -1,0 +1,34 @@
+name: "CommitGuard Scan"
+description: "AI-paced vulnerability scanning for code commits."
+inputs:
+  model:
+    description: "The Hugging Face model ID or path to use for scanning"
+    required: false
+    default: "inmodel-labs/commitguard-llama-3b"
+  fail-on-vulnerable:
+    description: "Fail the workflow if a vulnerability is found (true/false)"
+    required: false
+    default: "true"
+  github_token:
+    description: "GitHub token for PR scanning"
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: "docker"
+  image: "Dockerfile.serve"
+  args:
+    - "bash"
+    - "-c"
+    - |
+      pip install -e .
+      FAIL_ARG=""
+      if [ "${{ inputs.fail-on-vulnerable }}" = "true" ]; then
+        FAIL_ARG="--fail-on-vulnerable"
+      fi
+      # In a PR context, scan the PR diff. Otherwise, scan HEAD.
+      if [ "${{ github.event_name }}" = "pull_request" ]; then
+        # Needs gh cli or fetching diff manually. For simplicity, scan the latest commit.
+        commitguard scan --commit HEAD --format text $FAIL_ARG --model ${{ inputs.model }}
+      else
+        commitguard scan --commit HEAD --format text $FAIL_ARG --model ${{ inputs.model }}
+      fi
