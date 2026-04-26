@@ -11,7 +11,10 @@ from .scanner import CommitGuardScanner
 def cmd_scan(args):
     diff_text = ""
     if getattr(args, "diff", None):
-        diff_text = Path(args.diff).read_text(encoding="utf-8")
+        if args.diff in ("-", "/dev/stdin"):
+            diff_text = sys.stdin.read()
+        else:
+            diff_text = Path(args.diff).read_text(encoding="utf-8")
     elif getattr(args, "staged", False):
         diff_text = subprocess.check_output(["git", "diff", "--staged"], text=True)
     elif getattr(args, "commit", None):
