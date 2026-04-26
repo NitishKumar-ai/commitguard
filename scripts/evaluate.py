@@ -128,6 +128,21 @@ def evaluate(model_path, test_file, is_lora=False, base_model=None, output_file=
     vuln_count = sum(1 for s in samples if s["is_vulnerable"])
     safe_count = total - vuln_count
 
+    tp = summary["correct_binary"] - (safe_count - summary["false_positives"])  # TP = correct vuln predictions
+    # Recompute from confusion matrix
+    tp = vuln_count - summary["false_negatives"]
+    fp = summary["false_positives"]
+    fn = summary["false_negatives"]
+    tn = safe_count - fp
+
+    summary["tp"] = tp
+    summary["fp"] = fp
+    summary["tn"] = tn
+    summary["fn"] = fn
+    summary["precision"] = tp / (tp + fp) if (tp + fp) > 0 else 0
+    summary["recall"] = tp / (tp + fn) if (tp + fn) > 0 else 0
+    p, r = summary["precision"], summary["recall"]
+    summary["f1"] = 2 * p * r / (p + r) if (p + r) > 0 else 0
     summary["binary_accuracy"] = summary["correct_binary"] / total if total > 0 else 0
     summary["cwe_accuracy"] = summary["correct_cwe"] / vuln_count if vuln_count > 0 else 0
     summary["false_positive_rate"] = summary["false_positives"] / safe_count if safe_count > 0 else 0
@@ -139,9 +154,11 @@ def evaluate(model_path, test_file, is_lora=False, base_model=None, output_file=
 
     print(f"\nEvaluation Complete:")
     print(f"  Binary Accuracy: {summary['binary_accuracy']:.2%}")
+    print(f"  Precision:       {summary['precision']:.2%}")
+    print(f"  Recall:          {summary['recall']:.2%}")
+    print(f"  F1 Score:        {summary['f1']:.2%}")
     print(f"  CWE Accuracy:    {summary['cwe_accuracy']:.2%}")
-    print(f"  False Positives: {summary['false_positives']}")
-    print(f"  False Negatives: {summary['false_negatives']}")
+    print(f"  Confusion:       TP={summary['tp']} FP={summary['fp']} TN={summary['tn']} FN={summary['fn']}")
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
