@@ -1,0 +1,39 @@
+[project]
+name = "commitguard"
+version = "0.1.0"
+description = "CommitGuard OpenEnv RL environment for commit-time vuln detection"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "pydantic>=2.6",
+  "openenv>=0.1.13",
+]
+
+[project.optional-dependencies]
+train = [
+  "requests",
+  "torch>=2.4",
+  "transformers>=4.46",
+  "trl>=0.12",
+  "accelerate>=1.0",
+  "peft>=0.13",
+  "datasets>=3.0",
+  "wandb",
+  "matplotlib",
+  "unsloth",
+  "bitsandbytes>=0.44",
+  "jupyter",
+  "ipywidgets",
+]
+
+[project.scripts]
+server = "commitguard_env.server:main"
+
+[tool.setuptools]
+packages = ["commitguard_env"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
