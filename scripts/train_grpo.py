@@ -111,6 +111,10 @@ def main():
             f"{args.grad_accum} = {effective_batch}, num_generations={args.num_generations}."
         )
 
+    if not args.no_wandb and not os.getenv("WANDB_API_KEY"):
+        print("WANDB_API_KEY not set — disabling wandb logging")
+        args.no_wandb = True
+
     if not args.no_wandb:
         wandb.init(project=WANDB_PROJECT, name=f"grpo-{MODEL_NAME.split('/')[-1]}-run1")
 
