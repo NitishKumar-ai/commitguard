@@ -1,22 +1,19 @@
-# Use a robust PyTorch + CUDA base image
-FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-devel
+# Use PyTorch 2.5.1 to fix the 'torch.int1' and 'TrainingArguments' errors
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
 # Avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install git for Unsloth and HF push
+# Install git and other system essentials
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Upgrade pip
+# Upgrade pip and install core dependencies first
 RUN pip install --no-cache-dir -U pip setuptools wheel
-
-# Install Unsloth and training dependencies
-# Using the recommended installation for standard environments
 RUN pip install --no-cache-dir \
     "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" \
-    trl \
+    "trl>=0.12.0" \
     peft \
     accelerate \
     bitsandbytes \
