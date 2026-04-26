@@ -1,22 +1,35 @@
-# Use PyTorch 2.5.1 to fix the 'torch.int1' and 'TrainingArguments' errors
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
+# Use a stable CUDA base
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
 # Avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install git and other system essentials
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install Python 3.11 and essentials
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    python3.11-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set python3.11 as default
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 WORKDIR /app
 
-# Upgrade pip and install core dependencies first
+# Upgrade pip
 RUN pip install --no-cache-dir -U pip setuptools wheel
+
+# Install specific stable versions to bypass 2026 experimental version conflicts
+# Pinning to known-good versions from the 2024-2025 cycle
 RUN pip install --no-cache-dir \
+    "torch==2.5.1" \
+    "transformers==4.48.2" \
+    "trl==0.12.1" \
+    "peft==0.14.0" \
+    "accelerate==1.2.1" \
+    "bitsandbytes==0.45.0" \
     "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" \
-    "trl>=0.12.0" \
-    peft \
-    accelerate \
-    bitsandbytes \
     datasets \
     wandb \
     matplotlib \
