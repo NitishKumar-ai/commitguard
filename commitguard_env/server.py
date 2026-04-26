@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +14,18 @@ from pydantic import BaseModel
 from .environment import CommitGuardEnvironment
 from .parse_action import action_from_json, parse_action
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "devign_filtered.jsonl"
+# Configurable data path with fallback
+DATA_PATH_STR = os.environ.get("COMMITGUARD_DATA_PATH", "")
+if DATA_PATH_STR:
+    DATA_PATH = Path(DATA_PATH_STR)
+else:
+    DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "devign_filtered.jsonl"
 
 app = FastAPI(title="CommitGuard Env Server", version="0.1.0")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,6 +35,16 @@ app.add_middleware(
 )
 
 env = CommitGuardEnvironment(data_path=DATA_PATH)
+
+@app.on_event("startup")
+def startup_event():
+    logger.info(f"Loading data from {DATA_PATH}...")
+    try:
+        env.load()
+        logger.info(f"Successfully loaded {len(env._samples)} samples.")
+    except Exception as e:
+        logger.error(f"FAILED to load data: {e}")
+        # Don't crash startup, but logs will show the error
 
 
 class StepRequest(BaseModel):
@@ -82,11 +102,9 @@ def state(episode_id: str | None = None) -> dict[str, Any]:
 
 
 def main() -> None:
-    import os
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("commitguard_env.server:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":
     main()
-
