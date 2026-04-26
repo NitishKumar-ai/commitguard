@@ -3,12 +3,17 @@ from __future__ import annotations
 from .models import CommitGuardAction
 
 _CWE_FAMILIES: dict[str, str] = {
-    "CWE-119": "memory", "CWE-120": "memory", "CWE-121": "memory",
-    "CWE-122": "memory", "CWE-125": "memory", "CWE-787": "memory",
-    "CWE-476": "null",
-    "CWE-189": "integer", "CWE-190": "integer", "CWE-191": "integer",
-    "CWE-20": "input",
+    # Memory and Buffer issues
+    "CWE-119": "memory-safety", "CWE-120": "memory-safety", "CWE-121": "memory-safety",
+    "CWE-122": "memory-safety", "CWE-125": "memory-safety", "CWE-787": "memory-safety",
+    # Input and Validation issues (often overlap with memory safety)
+    "CWE-20": "input-validation", "CWE-190": "input-validation", "CWE-189": "input-validation",
+    "CWE-191": "input-validation",
+    # Pointers
+    "CWE-476": "null-pointer",
+    # Logic and Traversal
     "CWE-22": "traversal",
+    # Injections
     "CWE-78": "injection", "CWE-89": "injection", "CWE-79": "injection",
 }
 
