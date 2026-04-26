@@ -67,6 +67,19 @@ def cmd_eval(args):
     subprocess.run(cmd, check=True)
 
 
+def cmd_hook(args):
+    from .hooks import install_hook
+    
+    if args.action == "install":
+        if args.pre_commit:
+            install_hook("pre-commit")
+        elif args.pre_push:
+            install_hook("pre-push")
+        else:
+            print("Please specify a hook type to install (e.g., --pre-commit or --pre-push)")
+            sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="CommitGuard AI-paced security review")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -94,6 +107,12 @@ def main():
     eval_parser = subparsers.add_parser("eval", help="Run the evaluation harness")
     eval_parser.add_argument("eval_args", nargs=argparse.REMAINDER, help="Arguments passed to evaluate.py")
 
+    # 'hook' subcommand
+    hook_parser = subparsers.add_parser("hook", help="Manage git hooks")
+    hook_parser.add_argument("action", choices=["install"], help="Action to perform (e.g., install)")
+    hook_parser.add_argument("--pre-commit", action="store_true", help="Install pre-commit hook")
+    hook_parser.add_argument("--pre-push", action="store_true", help="Install pre-push hook")
+
     args = parser.parse_args()
 
     if args.command == "scan":
@@ -102,6 +121,8 @@ def main():
         cmd_server(args)
     elif args.command == "eval":
         cmd_eval(args)
+    elif args.command == "hook":
+        cmd_hook(args)
 
 if __name__ == "__main__":
     main()

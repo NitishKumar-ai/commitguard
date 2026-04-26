@@ -1,0 +1,5 @@
+- id: commitguard
+  name: CommitGuard vulnerability scan
+  entry: commitguard scan --staged --format text --fail-on-vulnerable
+  language: python
+  types: [python, c, cpp]
