@@ -44,6 +44,7 @@ COPY . .
 RUN pip install -e .
 
 # Set environment variables
+ENV PYTHONUNBUFFERED=1
 ENV MODEL_NAME="meta-llama/Llama-3.2-3B-Instruct"
 ENV OUTPUT_DIR="outputs/commitguard-llama-3b-grpo"
 ENV WANDB_PROJECT="commitguard"
