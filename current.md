@@ -424,3 +424,45 @@ CURVE IS FLAT? → Ship it anyway with honest narrative
      reward signal needs richer shaping in future work"
   → A flat curve + honest story > no submission
 ```
+
+---
+
+## PHASE 12 — Supervised Fine-Tuning (SFT)
+
+**The "Anchor" Phase — Teaching the model ground truth mapping and strict format.**
+
+### 12A. Data & Script Prep
+
+- [x] `scripts/train_sft.py` created
+- [ ] `data/devign_train.jsonl` verified
+- [ ] Chat template mapping verified (system, user, assistant roles)
+
+### 12B. Launch SFT
+
+```bash
+python scripts/train_sft.py --samples 1000 --epochs 1 --lr 2e-4
+```
+
+- [ ] Training starts without OOM
+- [ ] Loss decreases steadily (e.g., starts at ~1.5, drops to <0.5)
+- [ ] Training completes in _____ minutes
+- [ ] Output directory created: `./outputs/commitguard-llama-3b-sft/`
+
+### 12C. Post-SFT Evaluation
+
+```bash
+python evaluate.py \
+  --model_path ./outputs/commitguard-llama-3b-sft/final \
+  --test_file data/devign_test.jsonl \
+  --is_lora \
+  --base_model meta-llama/Llama-3.2-3B-Instruct \
+  --output eval_sft.json
+```
+
+- [ ] SFT Binary Accuracy: _____%
+- [ ] SFT CWE Accuracy: _____%
+- [ ] Format adherence (valid XML): 100% (expected)
+
+### 12D. RL Hybrid Path (Optional)
+
+- [ ] Relaunch GRPO using SFT adapter as base for faster convergence.
