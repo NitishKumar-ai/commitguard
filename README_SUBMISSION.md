@@ -53,7 +53,7 @@ Held-out evaluation on 100 samples:
 
 ## Technical Stack
 
-- Framework: Meta OpenEnv via `openenv-core==0.2.3`
+- Framework: Custom FastAPI environment (OpenEnv-compatible protocol)
 - Server: FastAPI + Docker on Hugging Face Spaces
 - RL algorithm: GRPO
 - Training: TRL + Unsloth 4-bit LoRA

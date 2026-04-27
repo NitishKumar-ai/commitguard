@@ -22,7 +22,8 @@ def test_reward_true_positive_correct_cwe_and_exploit_match() -> None:
     assert r == 2.0
 
 
-def test_reward_true_positive_wrong_cwe() -> None:
+def test_reward_true_positive_wrong_cwe_same_family() -> None:
+    # CWE-79 and CWE-89 are both in the "injection" family -> family bonus = 0.5 * 0.5
     a = CommitGuardAction(action_type="verdict", is_vulnerable=True, vuln_type="CWE-79", exploit_sketch="sql injection")
     r = compute_reward(
         action=a,
@@ -32,7 +33,8 @@ def test_reward_true_positive_wrong_cwe() -> None:
         cwe_keywords={"CWE-89": ["sql"]},
         context_requests=0,
     )
-    assert r == 1.75  # +1.0 verdict, +0.5 exploit match, +0.25 CWE family bonus
+    # 1.0 (TP) + 0.25 (family match: 0.5 * 0.5) + 0.5 (keyword: 1/1) = 1.75
+    assert r == 1.75
 
 
 def test_reward_false_positive() -> None:

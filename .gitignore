@@ -22,4 +22,15 @@ wandb/
 *.log
 outputs/
 
-# Keep plots tracked: judges need committed PNG/JPG evidence in the repo.
+# IDE
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+temp_space/
+temp_deploy/
+temp_pip_*/
+temp_write_probe/
+unsloth_compiled_cache/
+.venv-check/

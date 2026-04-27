@@ -1,6 +1,0 @@
-name: commitguard
-version: "0.1.0"
-description: "CommitGuard OpenEnv environment (FastAPI server)"
-port: 7860
-entrypoint: "server/app.py"
-

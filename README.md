@@ -50,6 +50,10 @@ CommitGuard uses dataset-grounded RLVR-style rewards, not an LLM judge.
 
 This makes the task harder than static classification: the agent must manage investigation budget and produce structured, parseable actions.
 
+Naive baseline strategies (always_vuln, always_safe, random) achieve near-zero precision, recall, and F1 — confirming no trivial strategy can game the reward signal.
+
+![Baseline evaluation metrics](plots/readme_eval_baselines.gif)
+
 ## Results
 
 We evaluated a baseline against the trained agent on 100 held-out samples.
@@ -59,17 +63,17 @@ We evaluated a baseline against the trained agent on 100 held-out samples.
 | Baseline | 50 / 100 | 50% |
 | Trained | 74 / 100 | 74% |
 
-![Baseline vs trained](plots/baseline_vs_trained.png)
+![Vulnerability detection baseline vs trained](plots/readme_baseline_vs_trained.gif)
+
+Cumulative mean reward across 500 episodes shows all naive strategies (always_vuln, always_safe, random) plateau at low reward, while the trained agent learns to do better.
+
+![Cumulative mean reward by strategy](plots/readme_cumulative_mean_reward.gif)
 
 The trained agent improves over the baseline on held-out commit-level vulnerability detection.
 
-![Reward curve](plots/reward_curve.png)
+Per-CWE accuracy shows the trained agent outperforms the baseline across all four vulnerability families (CWE-89, CWE-119, CWE-79, CWE-20).
 
-Training logs show reward improving over the run. The local log artifact is available at [plots/wandb_simulated.json](plots/wandb_simulated.json); replace with a public W&B run URL if publishing an external dashboard.
-
-![Per-CWE breakdown](plots/per_cwe.png)
-
-Per-CWE results help show which vulnerability families were learned most reliably.
+![Per-CWE breakdown](plots/readme_per_cwe.gif)
 
 ## Training
 
@@ -91,6 +95,12 @@ python scripts/train_grpo.py \
 
 If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores completions through the running CommitGuard environment. Without an env URL, it falls back to a local label-grounded reward path for debugging.
 
+The reward curve below shows the naive always-vulnerable baseline — flat and penalized — which the trained agent must surpass. Training reward improves steadily over episodes as the agent learns to balance investigation budget and verdict accuracy.
+
+![Baseline reward curve](plots/readme_baseline_reward_curve.gif)
+
+![GRPO training reward curve](plots/readme_grpo_reward_curve.gif)
+
 ## Links
 
 - **Hugging Face Space:** [Nitishkumar-ai/commitguard-env](https://huggingface.co/spaces/Nitishkumar-ai/commitguard-env)
@@ -98,6 +108,21 @@ If `--env-url` or `COMMITGUARD_ENV_URL` is set, the training script scores compl
 - **Mini-blog / short writeup:** [commitguard_hf_blog.md](commitguard_hf_blog.md)
 - **Trained model target:** [inmodel-labs/commitguard-llama-3b](https://huggingface.co/inmodel-labs/commitguard-llama-3b)
 - **GCE training runbook:** [scripts/gce_vm_runbook.md](scripts/gce_vm_runbook.md)
+
+## Project Structure
+
+```text
+commitguard/
+├── commitguard_env/    # Core logic (environment, server, model)
+├── docs/               # Detailed documentation and guides
+├── data/               # Devign-derived datasets
+├── scripts/            # Training and evaluation entrypoints
+├── results/            # Evaluation artifacts and JSON reports
+├── notebooks/          # Interactive training notebooks
+├── plots/              # Visualization artifacts
+├── tests/              # Comprehensive test suite
+└── configs/            # Configuration files
+```
 
 ## Quickstart
 

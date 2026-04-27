@@ -15,12 +15,12 @@ inputs:
     default: ${{ github.token }}
 runs:
   using: "docker"
-  image: "Dockerfile.serve"
+  image: "Dockerfile"
   args:
     - "bash"
     - "-c"
     - |
-      pip install -e .
+      pip install -e .[scan]
       FAIL_ARG=""
       if [ "${{ inputs.fail-on-vulnerable }}" = "true" ]; then
         FAIL_ARG="--fail-on-vulnerable"

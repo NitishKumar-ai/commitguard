@@ -19,7 +19,7 @@ echo "Running CommitGuard scan on commits to be pushed..."
 while read local_ref local_sha remote_ref remote_sha
 do
     if [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
-        commitguard scan --commit $local_sha --format text --fail-on-vulnerable
+        git diff "$remote_sha" "$local_sha" | commitguard scan --diff - --format text --fail-on-vulnerable
         if [ $? -ne 0 ]; then
             echo "CommitGuard found vulnerabilities in $local_sha! Push aborted."
             exit 1

@@ -1,0 +1,4 @@
+name: commitguard
+description: CommitGuard vulnerability detection environment
+version: 0.1.0
+entrypoint: commitguard_env.server:app

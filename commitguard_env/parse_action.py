@@ -6,9 +6,6 @@ from typing import Any, Optional
 from .models import CommitGuardAction
 
 
-_TAG_RE = re.compile(r"<(?P<tag>[a-zA-Z_]+)>(?P<val>.*?)</(?P=tag)>", re.DOTALL)
-
-
 def _first(tag: str, text: str) -> Optional[str]:
     # Robust case-insensitive search with optional whitespace inside tags
     pattern = rf"<[ \t]*{re.escape(tag)}[ \t]*>(.*?)</[ \t]*{re.escape(tag)}[ \t]*>"

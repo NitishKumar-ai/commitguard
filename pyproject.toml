@@ -29,6 +29,17 @@ dev = [
   "jupyter",
   "ipywidgets",
 ]
+scan = [
+  "torch>=2.4",
+  "transformers>=4.46",
+  "accelerate>=1.0",
+]
+train = [
+  "trl>=0.12",
+  "peft>=0.13",
+  "datasets>=3.0",
+  "unsloth",
+]
 
 [project.scripts]
 commitguard = "commitguard_env.cli:main"

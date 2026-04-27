@@ -35,8 +35,7 @@ RUN pip install --no-cache-dir \
     matplotlib \
     fastapi \
     uvicorn \
-    pydantic \
-    openenv
+    pydantic
 
 # Copy the project files
 COPY . .

@@ -2,4 +2,6 @@
   name: CommitGuard vulnerability scan
   entry: commitguard scan --staged --format text --fail-on-vulnerable
   language: python
-  types: [python, c, cpp]
+  stages: [pre-commit]
+  pass_filenames: false
+  additional_dependencies: ["commitguard[scan]"]
