@@ -6,7 +6,13 @@
       "Bash(pip install *)",
       "Bash(.venv/Scripts/pip install *)",
       "Bash(.venv/Scripts/python.exe *)",
-      "Bash(grep -v \"^d.*\\\\.\\\\|^total\\\\|^$\")"
+      "Bash(grep -v \"^d.*\\\\.\\\\|^total\\\\|^$\")",
+      "WebSearch",
+      "PowerShell(C:\\\\Users\\\\Nitish\\\\Downloads\\\\commitguard\\\\.venv\\\\Scripts\\\\activate)",
+      "PowerShell(& C:\\\\Users\\\\Nitish\\\\Downloads\\\\commitguard\\\\.venv\\\\Scripts\\\\Activate.ps1)",
+      "PowerShell(C:\\\\Users\\\\Nitish\\\\Downloads\\\\commitguard\\\\.venv\\\\Scripts\\\\python.exe --version)",
+      "PowerShell(winget install *)",
+      "PowerShell(Test-Path *)"
     ]
   }
 }

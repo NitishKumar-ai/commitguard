@@ -53,3 +53,10 @@ def test_reset_and_step_do_not_leak_ground_truth() -> None:
         # Ensure payload is valid JSON-serializable.
         json.dumps(payload)
 
+
+def test_observation_dataclass_no_leak() -> None:
+    from commitguard_env.models import CommitGuardObservation
+    import dataclasses
+    
+    fields = {f.name for f in dataclasses.fields(CommitGuardObservation)}
+    assert not (fields & FORBIDDEN_KEYS)

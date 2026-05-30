@@ -68,3 +68,114 @@ class ScanResult:
     raw_response: str
     parse_error: Optional[str] = None
 
+
+# ---------------------------------------------------------------------------
+# v2 models — repo-level scanning agent
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True, slots=True)
+class Finding:
+    """A single vulnerability finding from the v2 scanner."""
+
+    file: str
+    line_start: int
+    line_end: int
+    cwe_id: str
+    cwe_name: str
+    severity: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+    confidence: float
+    exploit_sketch: str
+    suggested_fix: str
+    code_snippet: str
+
+
+@dataclass(frozen=True, slots=True)
+class ScanJob:
+    """A queued repository scan job."""
+
+    job_id: str
+    repo_url: str
+    status: Literal[
+        "queued", "cloning", "planning", "scanning",
+        "reviewing", "verifying", "filing", "documenting",
+        "complete", "failed",
+    ]
+    findings: list[Finding] = field(default_factory=list)
+    error: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+@dataclass(frozen=True, slots=True)
+class CodeChunk:
+    """A chunk of code for memory / embedding."""
+
+    file_path: str
+    start_line: int
+    end_line: int
+    content: str
+    token_count: int
+
+
+# ---------------------------------------------------------------------------
+# v3 models — closed-loop verification & self-training
+# ---------------------------------------------------------------------------
+
+VerificationVerdict = Literal["CONFIRMED", "UNVERIFIABLE", "FALSE_POSITIVE"]
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedFinding:
+    """A finding that has been through the L2 verification sandbox."""
+
+    finding: Finding
+    verdict: VerificationVerdict
+    exploit_code: str
+    exploit_output: str
+    execution_time_ms: int
+    sandbox_exit_code: int
+    verified_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class TrainingPair:
+    """A structured training example from a verified scan."""
+
+    code: str
+    cwe_id: str
+    cwe_name: str
+    verdict: VerificationVerdict
+    exploit_code: str
+    exploit_output: str
+    suggested_fix: str
+    repo_url: str
+    commit_sha: str
+    file_path: str
+    line_start: int
+    line_end: int
+    created_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class SandboxConfig:
+    """Configuration for the L2 verification sandbox."""
+
+    image: str = "commitguard-sandbox:latest"
+    cpu_limit: str = "2"
+    memory_limit: str = "2g"
+    timeout_seconds: int = 30
+    network_disabled: bool = True
+    read_only_rootfs: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class RetrainJob:
+    """Tracks a self-training LoRA rerun."""
+
+    job_id: str
+    status: Literal["pending", "training", "swapping", "complete", "failed"]
+    new_examples_count: int
+    adapter_path: str
+    started_at: str
+    completed_at: Optional[str] = None
+    error: Optional[str] = None
+

@@ -1,6 +1,6 @@
 [project]
 name = "commitguard"
-version = "0.1.0"
+version = "0.3.0"
 description = "CommitGuard OpenEnv RL environment for commit-time vuln detection"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,6 +19,18 @@ scan = [
   "torch>=2.4",
   "transformers>=4.46",
   "accelerate>=1.0",
+  "peft>=0.13",
+  "bitsandbytes>=0.44",
+]
+v2 = [
+  "PyGithub>=2.0",
+  "sentence-transformers>=2.2",
+  "faiss-cpu>=1.7",
+  "gitpython>=3.1",
+]
+v3 = [
+  "google-cloud-storage>=2.14",
+  "docker>=7.0",
 ]
 train = [
   "requests",
@@ -42,6 +54,16 @@ server = "commitguard_env.server:main"
 
 [tool.setuptools]
 packages = ["commitguard_env"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+norecursedirs = [
+    "temp_*",
+    ".git",
+    ".venv",
+    "__pycache__",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
